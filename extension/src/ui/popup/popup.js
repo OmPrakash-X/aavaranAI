@@ -1,0 +1,119 @@
+// ============================================================
+// Popup Script — MV3 compliant, no inline onclick handlers
+// ============================================================
+
+let actionCount = 0;
+
+document.addEventListener('DOMContentLoaded', () => {
+  // ---- Wire up buttons via addEventListener (MV3 CSP requires this) ----
+  document.getElementById('startBtn').addEventListener('click', startAgent);
+  document.getElementById('stopBtn').addEventListener('click', stopAgent);
+
+  // ---- Dashboard link ----
+  document.getElementById('dashboardLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    chrome.tabs.create({ url: 'http://localhost:3000/dashboard' });
+  });
+
+  // ---- Check current agent status ----
+  chrome.runtime.sendMessage({ type: 'GET_STATUS' }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.warn('[Popup] Could not get status:', chrome.runtime.lastError.message);
+      return;
+    }
+    if (response?.isRunning) {
+      setRunningState(response.task);
+    }
+  });
+});
+
+// ---- Start Agent ----
+async function startAgent() {
+  const taskInput = document.getElementById('taskInput');
+  const task = taskInput.value.trim();
+
+  if (!task) {
+    taskInput.style.borderColor = '#ef4444';
+    taskInput.placeholder = 'Please enter a task first...';
+    setTimeout(() => {
+      taskInput.style.borderColor = '';
+      taskInput.placeholder = 'e.g. Click on the Sign in button';
+    }, 2000);
+    return;
+  }
+
+  try {
+    // Get the active tab in the current window
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) {
+      console.error('[Popup] No active tab found');
+      return;
+    }
+
+    console.log('[Popup] Starting agent on tab', tab.id, '| Task:', task);
+
+    // Send message to background service worker
+    chrome.runtime.sendMessage(
+      { type: 'START_AGENT', task, tabId: tab.id },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('[Popup] Error starting agent:', chrome.runtime.lastError.message);
+          return;
+        }
+        console.log('[Popup] Agent started:', response);
+      }
+    );
+
+    setRunningState(task);
+    actionCount = 0;
+
+  } catch (err) {
+    console.error('[Popup] startAgent error:', err);
+  }
+}
+
+// ---- Stop Agent ----
+function stopAgent() {
+  chrome.runtime.sendMessage({ type: 'STOP_AGENT' }, () => {
+    if (chrome.runtime.lastError) {
+      console.warn('[Popup] Stop error:', chrome.runtime.lastError.message);
+    }
+  });
+  setIdleState();
+}
+
+// ---- UI: Running state ----
+function setRunningState(task) {
+  document.getElementById('startBtn').style.display = 'none';
+  document.getElementById('stopBtn').style.display = 'block';
+  document.getElementById('taskInput').disabled = true;
+  document.getElementById('taskInput').value = task;
+  document.getElementById('statusDot').className = 'status-dot running';
+  document.getElementById('statusText').textContent = 'Running';
+  document.getElementById('statusPill').className = 'status-pill running';
+}
+
+// ---- UI: Idle state ----
+function setIdleState() {
+  document.getElementById('startBtn').style.display = 'block';
+  document.getElementById('stopBtn').style.display = 'none';
+  document.getElementById('taskInput').disabled = false;
+  document.getElementById('statusDot').className = 'status-dot idle';
+  document.getElementById('statusText').textContent = 'Idle';
+  document.getElementById('statusPill').className = 'status-pill idle';
+}
+
+// ---- Listen for metrics from background ----
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === 'METRICS_UPDATE') {
+    actionCount++;
+    document.getElementById('metricDetections').textContent = msg.detections ?? 0;
+    document.getElementById('metricLatency').textContent = msg.latency ? `${msg.latency}ms` : '—';
+    document.getElementById('metricActions').textContent = actionCount;
+    document.getElementById('metricProvider').textContent = msg.provider || '—';
+  }
+  if (msg.type === 'STATUS_UPDATE' && !msg.isRunning) {
+    setIdleState();
+  }
+});
+

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aavaran — Liquid Glass Privacy Agent</title>
+  <style>
+    /* ============================================================
+       Liquid Glass Monochrome UI — Browser Extension Popup
+       DESIGN.md Section 9.3
+       ============================================================ */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --color-surface-00: #F0F0F0;
+      --color-surface-01: #FFFFFF;
+      --color-surface-02: #F7F7F7;
+      --color-surface-03: #EEEEEE;
+      --color-dark-00:    #0D0D0D;
+      --color-text-primary: #111111;
+      --color-text-secondary: #888888;
+      --color-border-light: #EBEBEB;
+      --color-pill-bg:    #111111;
+      --color-pill-text:  #FFFFFF;
+    }
+
+    body {
+      width: 380px;
+      min-height: 540px;
+      background: var(--color-surface-00);
+      color: var(--color-text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* ─── HEADER (52px) ─────────────────────────────────── */
+    .header {
+      height: 56px;
+      padding: 0 18px;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--color-border-light);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--color-dark-00);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .logo-mark svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .brand-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--color-text-primary);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--color-surface-01);
+      border: 1px solid var(--color-border-light);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    .status-pill.idle {
+      color: var(--color-text-secondary);
+    }
+
+    .status-pill.running {
+      background: var(--color-dark-00);
+      color: #FFFFFF;
+      border-color: var(--color-dark-00);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .status-dot.idle {
+      background: #888888;
+    }
+
+    .status-dot.running {
+      background: #FFFFFF;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ─── MAIN CONTENT AREA ──────────────────────────────── */
+    .content {
+      padding: 18px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Task Input */
+    .task-card {
+      background: var(--color-surface-01);
+      border: 1px solid var(--color-border-light);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+
+    .task-label {
+      font-size: 11px;
+      color: var(--color-text-secondary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .task-input {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--color-surface-02);
+      border: 1px solid var(--color-border-light);
+      border-radius: 10px;
+      color: var(--color-text-primary);
+      font-size: 13px;
+      outline: none;
+      transition: all 0.15s ease;
+      resize: none;
+      min-height: 68px;
+      font-family: inherit;
+    }
+
+    .task-input::placeholder {
+      color: #AAAAAA;
+    }
+
+    .task-input:focus {
+      background: #FFFFFF;
+      border-color: #111111;
+      box-shadow: 0 0 0 2px rgba(17,17,17,0.08);
+    }
+
+    /* Action Buttons (Pill System) */
+    .btn-primary {
+      width: 100%;
+      padding: 12px;
+      background: var(--color-pill-bg);
+      color: var(--color-pill-text);
+      border: none;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-primary:hover {
+      background: #262626;
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-stop {
+      width: 100%;
+      padding: 12px;
+      background: #F2F2F2;
+      color: #111111;
+      border: 1px solid var(--color-border-light);
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-stop:hover {
+      background: #E5E5E5;
+    }
+
+    /* ─── 4 METRICS GRID ─────────────────────────────────── */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .metric-card {
+      padding: 12px 14px;
+      background: var(--color-surface-01);
+      border: 1px solid var(--color-border-light);
+      border-radius: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    .metric-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+    }
+
+    .metric-label {
+      font-size: 10px;
+      color: var(--color-text-secondary);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      font-weight: 500;
+    }
+
+    /* ─── FOOTER (52px) ─────────────────────────────────── */
+    .footer {
+      height: 52px;
+      padding: 0 18px;
+      background: rgba(255, 255, 255, 0.85);
+      border-top: 1px solid var(--color-border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer a {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--color-text-primary);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .footer a:hover {
+      color: #666666;
+    }
+
+    .footer-version {
+      font-size: 11px;
+      font-mono: monospace;
+      color: var(--color-text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <!-- Header (52px) -->
+  <div class="header">
+    <div class="header-brand">
+      <div class="logo-mark">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+        </svg>
+      </div>
+      <div class="brand-title">Aavaran</div>
+    </div>
+    <div class="status-pill idle" id="statusPill">
+      <span class="status-dot idle" id="statusDot"></span>
+      <span id="statusText">Idle</span>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="content">
+    <div class="task-card">
+      <div class="task-label">
+        <span>Autonomous Task</span>
+        <span style="font-size: 10px; font-weight: normal; color: #888;">Privacy Shield Armed</span>
+      </div>
+      <textarea
+        class="task-input"
+        id="taskInput"
+        placeholder="e.g. Fill out this registration form securely..."
+      ></textarea>
+    </div>
+
+    <!-- Action Buttons -->
+    <div>
+      <button class="btn-primary" id="startBtn">
+        ▶ Start Agent
+      </button>
+      <button class="btn-stop" id="stopBtn" style="display:none">
+        ■ Stop Agent
+      </button>
+    </div>
+
+    <!-- 4 Metrics Grid -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-value" id="metricDetections">0</div>
+        <div class="metric-label">PII Masked</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" id="metricLatency">—</div>
+        <div class="metric-label">Roundtrip</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" id="metricActions">0</div>
+        <div class="metric-label">Actions Done</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" id="metricProvider">Gemini</div>
+        <div class="metric-label">VLM Tier</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer (52px) -->
+  <div class="footer">
+    <a href="#" id="dashboardLink">Open Dashboard ↗</a>
+    <span class="footer-version">v1.0 · Monochrome</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
