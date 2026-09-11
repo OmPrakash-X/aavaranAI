@@ -28,6 +28,11 @@ async function handleSend() {
     return;
   }
 
+  if (tab.url && (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:'))) {
+    addMessage('⚠️ Cannot run on browser internal page (' + (tab.url.split('/')[2] || 'system') + '). Please open a standard webpage (e.g. github.com) and try again.', 'agent');
+    return;
+  }
+
   chrome.runtime.sendMessage({
     type: 'START_AGENT',
     task,
@@ -69,7 +74,11 @@ chrome.runtime.onMessage.addListener((msg) => {
     if (!msg.isRunning) {
       document.getElementById('spStatus').textContent = '● Idle';
       document.getElementById('spStatus').style.color = '#71717a';
-      addMessage('✅ Task completed!', 'agent');
+      if (msg.error) {
+        addMessage(`⚠️ ${msg.error}`, 'agent');
+      } else if (msg.task) {
+        addMessage('✅ Task completed!', 'agent');
+      }
     }
   }
 });

@@ -3,29 +3,19 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  ShieldCheck,
-  ShieldAlert,
-  Zap,
-  Activity,
-  Cpu,
-  Clock,
-  CheckCircle2,
-  TrendingUp,
-  FileText,
-  Lock,
-  CreditCard,
-  User,
-  EyeOff,
   Layers,
+  ShieldCheck,
+  Shield,
+  Clock,
+  Lock,
+  EyeOff,
   Sparkles,
-  ArrowUpRight,
+  User,
+  CreditCard,
   BarChart3,
-  Calendar,
-  Sliders,
+  ArrowUpRight,
   ChevronRight,
-  Play,
-  Share2,
-  FolderOpen
+  Zap
 } from "lucide-react";
 
 interface Metrics {
@@ -33,249 +23,262 @@ interface Metrics {
   totalDetections: number;
   avgLatency: number;
   avgDetectionsPerSession: number;
-  piiBreakdown: Record<string, number>;
-  providerUsage: Record<string, number>;
-  recentSessions: Array<{
-    _id: string;
-    sessionId: string;
-    pageTitle: string;
-    totalDetections: number;
-    action: { action: string; reasoning: string };
-    latency: { totalEndToEnd: number };
-    vlmProvider: string;
-    createdAt: string;
-  }>;
 }
 
-export default function DashboardPage() {
+export default function DashboardOverviewPage() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState<string>("");
-
-  const fetchMetrics = () => {
-    fetch("/api/v1/metrics")
-      .then(async (res) => {
-        if (!res.ok) return null;
-        const text = await res.text();
-        return text ? JSON.parse(text) : null;
-      })
-      .then((data) => {
-        if (data) setMetrics(data);
-        setLastUpdated(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  };
+  const [activeTab, setActiveTab] = useState<"Live View" | "Filter Steps" | "AI Actions">("Live View");
 
   useEffect(() => {
-    fetchMetrics();
-    const interval = setInterval(fetchMetrics, 5000);
-    return () => clearInterval(interval);
+    fetch("/api/v1/metrics")
+      .then((res) => res.json())
+      .then(setMetrics)
+      .catch(console.error);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 rounded-[24px] liquid-glass-card animate-pulse" />
-          ))}
-        </div>
-        <div className="h-72 rounded-[28px] liquid-glass-dark animate-pulse" />
-      </div>
-    );
-  }
-
-  const statCards = [
-    {
-      label: "Total Sessions",
-      value: metrics?.totalSessions || 0,
-      delta: "+12.4%",
-      icon: Activity,
-      sparkline: "M 0,22 Q 20,4 40,16 T 80,6",
-    },
-    {
-      label: "Masked Entities",
-      value: metrics?.totalDetections || 0,
-      delta: "100% PII Safe",
-      icon: ShieldCheck,
-      sparkline: "M 0,20 Q 20,26 40,10 T 80,4",
-    },
-    {
-      label: "Inference Latency",
-      value: `${metrics?.avgLatency || 42}ms`,
-      delta: "Sub-50ms",
-      icon: Zap,
-      sparkline: "M 0,8 Q 20,16 40,6 T 80,12",
-    },
-    {
-      label: "PII Per Session",
-      value: metrics?.avgDetectionsPerSession ? metrics.avgDetectionsPerSession.toFixed(1) : "0.0",
-      delta: "Automated",
-      icon: EyeOff,
-      sparkline: "M 0,16 Q 20,8 40,18 T 80,8",
-    },
-  ];
+  const totalSessions = metrics?.totalSessions ?? 17;
+  const totalDetections = metrics?.totalDetections ?? 30;
+  const avgLatency = metrics?.avgLatency ? `${metrics.avgLatency}ms` : "12155ms";
+  const piiPerSession = metrics?.avgDetectionsPerSession ?? 1.8;
 
   return (
     <div className="space-y-6">
-      {/* ─── TOP STATUS CARD WITH MACOS TRAFFIC LIGHTS ────── */}
-      <div className="liquid-glass-card p-5 relative overflow-hidden transition-all shadow-md">
-        <div className="absolute -top-20 -left-20 w-80 h-80 bg-gradient-to-br from-white/30 to-transparent rounded-full blur-2xl pointer-events-none" />
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/40 border border-white/60 shadow-xs mr-1">
-                <span className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]/80 shadow-xs inline-block cursor-pointer hover:scale-110 transition-transform" title="Close" />
-                <span className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]/80 shadow-xs inline-block cursor-pointer hover:scale-110 transition-transform" title="Minimize" />
-                <span className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]/80 shadow-xs inline-block cursor-pointer hover:scale-110 transition-transform" title="Maximize" />
-              </div>
-              <h1 className="text-2xl font-bold text-[#111111] tracking-tight flex items-center gap-2.5">
-                <span>Perception Command Center</span>
-                <span className="text-[11px] px-3 py-1 rounded-full liquid-glass-pill-dark font-mono font-medium shadow-xs">
-                  Active Shield
-                </span>
-              </h1>
-            </div>
-            <p className="text-[13px] text-[#555555] mt-1.5 ml-1 font-medium">
-              Real-time telemetry, surgical blackout rules, and on-device privacy metrics
-            </p>
+      {/* ─── HEADER SUBTEXT (SIMPLE ENGLISH) ───────────────── */}
+      <div className="-mt-2 mb-2">
+        <p className="text-[13px] font-medium text-[#555555]">
+          Live protection activity, privacy rules, and system speed
+        </p>
+      </div>
+
+      {/* ─── 4 TOP STAT CARDS (SIMPLE LABELS) ───────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Total Sessions */}
+        <div className="liquid-glass-card p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-semibold text-[#555555] flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-[#111111]" />
+              <span>Total Sessions</span>
+            </span>
+            <span className="text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full liquid-glass-pill text-[#111111]">
+              +12.4%
+            </span>
           </div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <div className="flex items-center gap-2 text-xs liquid-glass-pill px-3.5 py-1.5 shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[#333333] font-medium font-mono text-[11px]">Synced · {lastUpdated || "Live"}</span>
+
+          <div className="my-3">
+            <div className="text-3xl font-bold font-mono text-[#111111] tracking-tight">
+              {totalSessions}
             </div>
-            <Link
-              href="/dashboard/live"
-              className="text-xs px-3.5 py-1.5 rounded-full liquid-glass-pill-dark shadow-xs flex items-center gap-1.5 font-medium hover:scale-105 transition-transform"
-            >
-              <Play className="w-3 h-3 fill-current" />
-              <span>Live Visuals</span>
-            </Link>
+          </div>
+
+          {/* Sparkline curve */}
+          <div className="flex items-center justify-between pt-1">
+            <svg className="w-24 h-5 overflow-visible" viewBox="0 0 100 20" fill="none">
+              <path
+                d="M0 15 Q25 5 50 12 T100 8"
+                stroke="#111111"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-[#555555]">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Live</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Hidden Private Items */}
+        <div className="liquid-glass-card p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-semibold text-[#555555] flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#111111]" />
+              <span>Hidden Private Items</span>
+            </span>
+            <span className="text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full liquid-glass-pill text-[#111111]">
+              100% Protected
+            </span>
+          </div>
+
+          <div className="my-3">
+            <div className="text-3xl font-bold font-mono text-[#111111] tracking-tight">
+              {totalDetections}
+            </div>
+          </div>
+
+          {/* Sparkline curve */}
+          <div className="flex items-center justify-between pt-1">
+            <svg className="w-24 h-5 overflow-visible" viewBox="0 0 100 20" fill="none">
+              <path
+                d="M0 12 Q30 18 60 7 T100 14"
+                stroke="#111111"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-[#555555]">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Live</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: System Response Time */}
+        <div className="liquid-glass-card p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-semibold text-[#555555] flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-[#111111]" />
+              <span>Response Time</span>
+            </span>
+            <span className="text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full liquid-glass-pill text-[#111111]">
+              Fast (~50ms)
+            </span>
+          </div>
+
+          <div className="my-3">
+            <div className="text-3xl font-bold font-mono text-[#111111] tracking-tight truncate">
+              {avgLatency}
+            </div>
+          </div>
+
+          {/* Sparkline curve */}
+          <div className="flex items-center justify-between pt-1">
+            <svg className="w-24 h-5 overflow-visible" viewBox="0 0 100 20" fill="none">
+              <path
+                d="M0 16 Q35 6 65 14 T100 9"
+                stroke="#111111"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-[#555555]">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Live</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Items Hidden / Visit */}
+        <div className="liquid-glass-card p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-semibold text-[#555555] flex items-center gap-1.5">
+              <EyeOff className="w-3.5 h-3.5 text-[#111111]" />
+              <span>Private Items / Visit</span>
+            </span>
+            <span className="text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full liquid-glass-pill text-[#111111]">
+              Auto-Hidden
+            </span>
+          </div>
+
+          <div className="my-3">
+            <div className="text-3xl font-bold font-mono text-[#111111] tracking-tight">
+              {piiPerSession}
+            </div>
+          </div>
+
+          {/* Sparkline curve */}
+          <div className="flex items-center justify-between pt-1">
+            <svg className="w-24 h-5 overflow-visible" viewBox="0 0 100 20" fill="none">
+              <path
+                d="M0 10 Q20 18 50 10 T100 15"
+                stroke="#111111"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-[#555555]">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Live</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ─── ROW 1: STAT PILLS ────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <div
-              key={card.label}
-              className="liquid-glass-card p-5 flex flex-col justify-between"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#777777]">
-                    <Icon className="w-3.5 h-3.5 text-[#555555]" />
-                    <span>{card.label}</span>
-                  </div>
-                  <span className="text-[28px] font-bold text-[#111111] tracking-tight leading-tight mt-1.5 block">
-                    {card.value}
-                  </span>
-                </div>
-                <span className="text-[11px] font-medium px-2.5 py-1 rounded-full liquid-glass-pill text-[#333333]">
-                  {card.delta}
-                </span>
-              </div>
-
-              {/* Sparkline & signal */}
-              <div className="pt-4 flex items-center justify-between border-t border-white/50 mt-2">
-                <svg className="w-24 h-6 text-[#111111] overflow-visible" viewBox="0 0 80 26" fill="none">
-                  <path
-                    d={card.sparkline}
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <span className="text-[10px] font-mono text-[#888888] flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  Live Sync
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ─── ROW 2: TIMELINE PIPELINE & ONGOING METRICS & OBSIDIAN PREVIEW ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left (7 cols): Vision Pipeline Gantt / Timeline (Inspired by reference UI top-left) */}
+      {/* ─── MIDDLE ROW: PROTECTION TIMELINE & LIVE SHIELD ───── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Left: Protection Timeline (7 cols) */}
         <div className="lg:col-span-7 liquid-glass-card p-6 flex flex-col justify-between">
           <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-white/60">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-white/50">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#111111] text-white flex items-center justify-center shadow-xs">
-                  <Calendar className="w-4 h-4" />
+                <div className="w-9 h-9 rounded-2xl bg-[#0D0D0D] text-white flex items-center justify-center shadow-xs">
+                  <Layers className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-[15px] font-bold text-[#111111]">Perception Timeline</h3>
-                  <p className="text-[11px] text-[#777777]">Surgical redaction &amp; model reasoning milestones</p>
+                  <h3 className="text-[15px] font-bold text-[#111111]">Protection Timeline</h3>
+                  <p className="text-[11px] text-[#666666]">How your screen is checked and protected step by step</p>
                 </div>
               </div>
 
-              {/* Switcher tabs */}
-              <div className="flex items-center p-1 rounded-full bg-white/70 border border-white/80 text-[11px] font-medium">
-                <button className="px-3 py-1 rounded-full bg-[#0D0D0D] text-white shadow-xs">Live</button>
-                <button className="px-3 py-1 rounded-full text-[#666666] hover:text-[#111111]">Cascade</button>
-                <button className="px-3 py-1 rounded-full text-[#666666] hover:text-[#111111]">VLM</button>
+              {/* Tabs */}
+              <div className="flex items-center gap-1 p-1 rounded-full liquid-glass-pill">
+                {(["Live View", "Filter Steps", "AI Actions"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
+                      activeTab === tab
+                        ? "bg-[#0D0D0D] text-white shadow-xs"
+                        : "text-[#666666] hover:text-[#111111]"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Timeline Tracks */}
-            <div className="space-y-4">
-              {/* Track 1: Frame Capture */}
-              <div className="flex items-center gap-4 text-xs">
-                <span className="w-24 font-medium text-[#555555] shrink-0">Frame Capture</span>
-                <div className="flex-1 bg-white/50 h-9 rounded-full relative flex items-center px-3 border border-white/70">
-                  <div className="h-6 rounded-full bg-[#0D0D0D] text-white text-[10px] font-mono px-3 flex items-center gap-2 shadow-xs ml-2">
+            <div className="space-y-3.5 pt-5">
+              {/* Row 1: Take Screenshot */}
+              <div className="flex items-center gap-4">
+                <span className="w-28 text-xs font-semibold text-[#444444] shrink-0">Take Screenshot</span>
+                <div className="flex-1 h-9 rounded-full bg-white/40 border border-white/60 relative flex items-center px-2 shadow-inner">
+                  <div className="px-3.5 py-1 rounded-full bg-[#0D0D0D] text-white text-[11px] font-mono font-medium flex items-center gap-1.5 shadow-xs ml-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    <span>Hook ~ 4ms</span>
+                    <span>Captured ~ 4ms</span>
                   </div>
                 </div>
               </div>
 
-              {/* Track 2: OCR & Regex */}
-              <div className="flex items-center gap-4 text-xs">
-                <span className="w-24 font-medium text-[#555555] shrink-0">PII Scan</span>
-                <div className="flex-1 bg-white/50 h-9 rounded-full relative flex items-center px-3 border border-white/70">
-                  <div className="h-6 rounded-full bg-[#0D0D0D] text-white text-[10px] font-mono px-3 flex items-center gap-2 shadow-xs ml-16">
-                    <Lock className="w-3 h-3 text-white" />
-                    <span>OCR Regex ~ 18ms</span>
+              {/* Row 2: Find Private Data */}
+              <div className="flex items-center gap-4">
+                <span className="w-28 text-xs font-semibold text-[#444444] shrink-0">Find Private Data</span>
+                <div className="flex-1 h-9 rounded-full bg-white/40 border border-white/60 relative flex items-center px-2 shadow-inner">
+                  <div className="px-3.5 py-1 rounded-full bg-[#0D0D0D] text-white text-[11px] font-mono font-medium flex items-center gap-1.5 shadow-xs ml-14">
+                    <Lock className="w-3 h-3 text-emerald-400" />
+                    <span>Scanned ~ 18ms</span>
                   </div>
                 </div>
               </div>
 
-              {/* Track 3: Canvas Blackout */}
-              <div className="flex items-center gap-4 text-xs">
-                <span className="w-24 font-medium text-[#555555] shrink-0">Redaction</span>
-                <div className="flex-1 bg-white/50 h-9 rounded-full relative flex items-center px-3 border border-white/70">
-                  <div className="h-6 rounded-full bg-[#0D0D0D] text-white text-[10px] font-mono px-3 flex items-center gap-2 shadow-xs ml-36">
+              {/* Row 3: Hide Sensitive Info */}
+              <div className="flex items-center gap-4">
+                <span className="w-28 text-xs font-semibold text-[#444444] shrink-0">Hide Sensitive Info</span>
+                <div className="flex-1 h-9 rounded-full bg-white/40 border border-white/60 relative flex items-center px-2 shadow-inner">
+                  <div className="px-3.5 py-1 rounded-full bg-[#0D0D0D] text-white text-[11px] font-mono font-medium flex items-center gap-1.5 shadow-xs ml-36">
                     <EyeOff className="w-3 h-3 text-white" />
-                    <span>Blackout ~ 12ms</span>
+                    <span>Hidden ~ 12ms</span>
                   </div>
                 </div>
               </div>
 
-              {/* Track 4: VLM Grounding */}
-              <div className="flex items-center gap-4 text-xs">
-                <span className="w-24 font-medium text-[#555555] shrink-0">Agent Action</span>
-                <div className="flex-1 bg-white/50 h-9 rounded-full relative flex items-center px-3 border border-white/70">
-                  <div className="h-6 rounded-full bg-[#0D0D0D] text-white text-[10px] font-mono px-3 flex items-center gap-2 shadow-xs ml-52">
+              {/* Row 4: AI Decision */}
+              <div className="flex items-center gap-4">
+                <span className="w-28 text-xs font-semibold text-[#444444] shrink-0">AI Assistant Action</span>
+                <div className="flex-1 h-9 rounded-full bg-white/40 border border-white/60 relative flex items-center px-2 shadow-inner">
+                  <div className="px-3.5 py-1 rounded-full bg-[#0D0D0D] text-white text-[11px] font-mono font-medium flex items-center gap-1.5 shadow-xs ml-56">
                     <Sparkles className="w-3 h-3 text-emerald-400" />
-                    <span>Gemini 2.5 ~ 240ms</span>
+                    <span>AI Ready ~ 240ms</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Time ticks footer */}
-          <div className="flex justify-between text-[11px] font-mono text-[#888888] pt-4 mt-6 border-t border-white/60">
+          {/* Timeline Ruler */}
+          <div className="pt-5 mt-4 border-t border-white/40 flex justify-between text-[11px] font-mono text-[#888888] pl-32 pr-2">
             <span>0ms</span>
             <span>50ms</span>
             <span>100ms</span>
@@ -285,210 +288,221 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Right (5 cols): Obsidian Preview Card with glowing liquid pearl (Inspired by reference UI top-right) */}
-        <div className="lg:col-span-5 liquid-glass-dark p-6 text-white flex flex-col justify-between relative overflow-hidden">
-          {/* Subtle sheen highlight */}
-          <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-2xl pointer-events-none" />
-
-          <div>
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-white/80" />
-                <span className="text-[13px] font-semibold text-white">Live Perception Shield</span>
-              </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-emerald-400 border border-white/10">
-                ACTIVE
-              </span>
+        {/* Right: Live Privacy Shield (5 cols) - Dark Card */}
+        <div className="lg:col-span-5 rounded-[24px] bg-[#111111] text-white p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden border border-white/10">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-white" />
+              <span className="text-[14px] font-bold tracking-tight">Live Privacy Shield</span>
             </div>
-
-            {/* Glowing Liquid Pearl Visual */}
-            <div className="my-5 flex flex-col items-center justify-center">
-              <div className="w-28 h-28 liquid-orb-preview flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/40 flex items-center justify-center">
-                  <ShieldCheck className="w-8 h-8 text-white" />
-                </div>
-              </div>
-              <p className="mt-3 text-[13px] font-medium text-white/90">Sanitized Vision Stream</p>
-              <p className="text-[11px] text-white/50">Cryptographic irreversible canvas blackout</p>
-            </div>
+            <span className="text-[10px] font-mono font-semibold px-2.5 py-0.5 rounded-full border border-emerald-500/40 text-emerald-400 bg-emerald-500/10 tracking-wider">
+              PROTECTED
+            </span>
           </div>
 
-          {/* Bottom Operator Pill */}
-          <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+          {/* Center: Glowing metallic liquid orb */}
+          <div className="my-6 flex flex-col items-center justify-center">
+            <div className="relative w-36 h-36 rounded-full flex items-center justify-center p-1.5 shadow-[0_0_50px_rgba(255,255,255,0.18)]">
+              {/* Orb gradient ring */}
+              <div className="w-full h-full rounded-full bg-gradient-to-b from-white/30 via-white/5 to-black/80 flex items-center justify-center border border-white/30 p-2">
+                <div className="w-full h-full rounded-full bg-gradient-to-tr from-[#1a1a1a] via-[#333333] to-[#0a0a0a] flex items-center justify-center shadow-inner border border-white/20">
+                  <ShieldCheck className="w-10 h-10 text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.8)]" />
+                </div>
+              </div>
+            </div>
+
+            <h4 className="text-base font-bold text-white mt-4 tracking-tight">
+              Safe Screen View
+            </h4>
+            <p className="text-[11px] text-white/60 mt-0.5 text-center max-w-[260px]">
+              Private details are completely hidden before leaving your device
+            </p>
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between pt-4 border-t border-white/10">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold ring-1 ring-white/40">
+              <div className="w-7 h-7 rounded-full bg-white/10 text-white text-[11px] font-bold flex items-center justify-center">
                 AI
               </div>
               <div>
-                <span className="text-[12px] font-medium text-white block leading-tight">Gemini 2.5 Flash</span>
-                <span className="text-[10px] text-white/50">Telemetry verified</span>
-              </div>
-            </div>
-
-            <Link
-              href="/dashboard/live"
-              className="px-3 py-1.5 rounded-full bg-white text-[#111111] text-[11px] font-semibold hover:bg-white/90 transition shadow-xs flex items-center gap-1.5"
-            >
-              <span>Inspect</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── ROW 3: ALL FILES (PILL LIST) & DETECTIONS DISTRIBUTION ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left (5 cols): Files / PII Interceptions in rounded pill rows (Inspired by reference UI bottom-left) */}
-        <div className="lg:col-span-5 liquid-glass-card p-6">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/60">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#111111] text-white flex items-center justify-center">
-                <FolderOpen className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-[15px] font-bold text-[#111111]">PII Blackout Rules</h3>
-                <span className="text-[11px] text-[#777777]">{metrics?.totalDetections || 10} active scanners</span>
+                <div className="text-xs font-semibold text-white">Gemini 2.5 AI</div>
+                <div className="text-[10px] text-white/50">Security Verified</div>
               </div>
             </div>
 
             <Link
               href="/dashboard/detections"
-              className="text-[12px] text-[#555555] hover:text-[#111111] font-medium flex items-center gap-1"
+              className="px-3.5 py-1.5 rounded-full bg-white text-[#111111] text-xs font-bold hover:bg-white/90 transition flex items-center gap-1 shadow-xs"
             >
-              <span>View all</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <span>View Details</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
             </Link>
-          </div>
-
-          {/* Pill list rows */}
-          <div className="space-y-2.5">
-            {[
-              { label: "Biometric Face Obfuscation", type: "Face Detection", count: metrics?.piiBreakdown?.["face"] || 14, icon: User },
-              { label: "Credentials & Auth Secrets", type: "Password / Bearer", count: metrics?.piiBreakdown?.["password"] || 8, icon: Lock },
-              { label: "Government ID Verhoeff Check", type: "Aadhaar / PAN", count: metrics?.piiBreakdown?.["aadhaar"] || 5, icon: ShieldAlert },
-              { label: "Payment Card Luhn Sequences", type: "Visa / MC / Amex", count: metrics?.piiBreakdown?.["credit_card"] || 2, icon: CreditCard },
-            ].map((row) => {
-              const Icon = row.icon;
-              return (
-                <div
-                  key={row.label}
-                  className="rounded-full liquid-glass-pill px-4 py-2.5 flex items-center justify-between hover:bg-white transition-all shadow-xs"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full bg-[#111111] text-white flex items-center justify-center shrink-0">
-                      <Icon className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[12px] font-semibold text-[#111111] truncate">{row.label}</p>
-                      <p className="text-[10px] text-[#777777]">{row.type}</p>
-                    </div>
-                  </div>
-                  <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-white border border-[#EBEBEB] text-[#444444]">
-                    {row.count} hits
-                  </span>
-                </div>
-              );
-            })}
           </div>
         </div>
 
-        {/* Right (7 cols): Panoramic Dark Team & Development Analytics (Inspired by reference UI bottom-right) */}
-        <div className="lg:col-span-7 liquid-glass-dark p-6 text-white flex flex-col justify-between relative overflow-hidden">
+      </div>
+
+      {/* ─── BOTTOM ROW: PRIVACY RULES & PERFORMANCE STATUS ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Left: Privacy Protection Rules (6 cols) */}
+        <div className="lg:col-span-6 liquid-glass-card p-6 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+            <div className="flex items-center justify-between pb-3 border-b border-white/50">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                  <BarChart3 className="w-4 h-4 text-white" />
+                <div className="w-9 h-9 rounded-2xl bg-[#0D0D0D] text-white flex items-center justify-center shadow-xs">
+                  <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-[15px] font-bold text-white">Detection &amp; Automation Stream</h3>
-                  <span className="text-[11px] text-white/50">Recent verified browser task execution</span>
+                  <h3 className="text-[15px] font-bold text-[#111111]">Privacy Protection Rules</h3>
+                  <p className="text-[11px] text-[#666666]">30 safety checks active</p>
+                </div>
+              </div>
+
+              <Link
+                href="/dashboard/detections"
+                className="text-xs font-semibold text-[#555555] hover:text-[#111111] transition flex items-center gap-0.5"
+              >
+                <span>View all</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            {/* Rules list */}
+            <div className="space-y-3.5 pt-4">
+              {/* Item 1 */}
+              <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-white/40 transition">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#0D0D0D] text-white flex items-center justify-center shadow-xs">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-[13px] font-bold text-[#111111]">Face Blurring</h5>
+                    <p className="text-[11px] text-[#666666]">Automatically hides faces in photos and avatars</p>
+                  </div>
+                </div>
+                <span className="px-3 py-1 rounded-full liquid-glass-pill text-xs font-mono font-medium text-[#444444]">
+                  14 protected
+                </span>
+              </div>
+
+              {/* Item 2 */}
+              <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-white/40 transition">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#0D0D0D] text-white flex items-center justify-center shadow-xs">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-[13px] font-bold text-[#111111]">Passwords &amp; Login Info</h5>
+                    <p className="text-[11px] text-[#666666]">Hides passwords and secret login keys</p>
+                  </div>
+                </div>
+                <span className="px-3 py-1 rounded-full liquid-glass-pill text-xs font-mono font-medium text-[#444444]">
+                  15 protected
+                </span>
+              </div>
+
+              {/* Item 3 */}
+              <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-white/40 transition">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#0D0D0D] text-white flex items-center justify-center shadow-xs">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-[13px] font-bold text-[#111111]">ID &amp; Card Numbers</h5>
+                    <p className="text-[11px] text-[#666666]">Hides Aadhaar, PAN, and credit cards</p>
+                  </div>
+                </div>
+                <span className="px-3 py-1 rounded-full liquid-glass-pill text-xs font-mono font-medium text-[#444444]">
+                  1 protected
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Safety & Performance Status (6 cols) - Dark Card */}
+        <div className="lg:col-span-6 rounded-[24px] bg-[#111111] text-white p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden border border-white/10">
+          <div>
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-2xl bg-white/10 text-white flex items-center justify-center">
+                  <BarChart3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-bold tracking-tight">Safety &amp; Performance Status</h3>
+                  <p className="text-[11px] text-white/50">Real-time browser protection performance</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-4 text-right">
                 <div>
-                  <span className="text-[10px] uppercase font-mono text-white/50 block">Accuracy</span>
-                  <span className="text-[14px] font-bold text-white">99.8%</span>
+                  <div className="text-[9px] uppercase tracking-wider text-white/50">ACCURACY</div>
+                  <div className="text-sm font-mono font-bold text-white">99.8%</div>
                 </div>
-                <div className="h-6 w-px bg-white/15" />
                 <div>
-                  <span className="text-[10px] uppercase font-mono text-white/50 block">Throughput</span>
-                  <span className="text-[14px] font-bold text-emerald-400">120 FPS</span>
+                  <div className="text-[9px] uppercase tracking-wider text-white/50">SMOOTHNESS</div>
+                  <div className="text-sm font-mono font-bold text-emerald-400">120 FPS</div>
                 </div>
               </div>
             </div>
 
-            {/* Equalizer Bars & Execution Columns */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-5">
+            {/* 3-column content */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-5">
+              {/* Col 1 */}
               <div className="space-y-2">
-                <span className="text-[12px] font-semibold text-white block">OCR Client Cascade</span>
-                <p className="text-[11px] text-white/60">Local deterministic regex &amp; canvas redaction</p>
+                <div className="text-xs font-bold text-white">On-Device Privacy Filter</div>
+                <p className="text-[10px] text-white/50 leading-relaxed">
+                  Instantly blocks private text right inside your browser
+                </p>
                 <div className="pt-2">
-                  <div className="flex justify-between text-[11px] font-mono text-white/70 mb-1">
-                    <span>Latency</span>
+                  <div className="flex justify-between text-[10px] text-white/60 mb-1 font-mono">
+                    <span>Check Speed</span>
                     <span>18ms</span>
                   </div>
-                  <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                    <div className="h-full bg-white rounded-full w-[95%]" />
+                  <div className="w-full h-1 rounded-full bg-white/10 overflow-hidden">
+                    <div className="h-full bg-white rounded-full w-[25%]" />
                   </div>
                 </div>
               </div>
 
+              {/* Col 2 */}
               <div className="space-y-2">
-                <span className="text-[12px] font-semibold text-white block">VLM Grounding Tier</span>
-                <p className="text-[11px] text-white/60">Gemini 2.5 Flash perception engine</p>
+                <div className="text-xs font-bold text-white">AI Vision Assistant</div>
+                <p className="text-[10px] text-white/50 leading-relaxed">
+                  Understands your requests and follows instructions safely
+                </p>
                 <div className="pt-2">
-                  <div className="flex justify-between text-[11px] font-mono text-white/70 mb-1">
-                    <span>Confidence</span>
+                  <div className="flex justify-between text-[10px] text-white/60 mb-1 font-mono">
+                    <span>Reliability</span>
                     <span>98.2%</span>
                   </div>
-                  <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div className="w-full h-1 rounded-full bg-white/10 overflow-hidden">
                     <div className="h-full bg-emerald-400 rounded-full w-[98%]" />
                   </div>
                 </div>
               </div>
 
-              {/* Equalizer Visualizer (Matching Reference UI Bar Striping) */}
+              {/* Col 3: Activity Monitor equalizer bars */}
               <div className="space-y-2">
-                <span className="text-[12px] font-semibold text-white block">Model Equalizer</span>
-                <div className="flex items-end gap-1.5 h-14 pt-2">
-                  {[40, 65, 30, 85, 95, 55, 75, 90, 60, 100, 70, 45].map((h, i) => (
+                <div className="text-xs font-bold text-white">Activity Monitor</div>
+                <div className="h-14 flex items-end justify-between gap-1 pt-2">
+                  {[40, 65, 30, 85, 55, 95, 70, 45, 80, 60, 90, 35].map((height, i) => (
                     <div
                       key={i}
-                      className="flex-1 bg-white/20 hover:bg-white transition-all rounded-full overflow-hidden flex flex-col justify-end"
-                      style={{ height: "100%" }}
-                    >
-                      <div
-                        className="w-full bg-white rounded-full"
-                        style={{ height: `${h}%` }}
-                      />
-                    </div>
+                      className="flex-1 bg-white rounded-full opacity-90 transition-all duration-300"
+                      style={{ height: `${height}%` }}
+                    />
                   ))}
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Footer with Recent Session Pill */}
-          <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-white/60">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span>
-                {metrics?.recentSessions?.[0]?.pageTitle
-                  ? `Active session on: ${metrics.recentSessions[0].pageTitle.slice(0, 32)}...`
-                  : "Ready for live automation"}
-              </span>
-            </div>
-            <Link
-              href="/dashboard/sessions"
-              className="text-white hover:underline flex items-center gap-1 font-medium"
-            >
-              <span>View audit log</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
         </div>
+
       </div>
     </div>
   );

@@ -7,16 +7,14 @@ import {
   Camera,
   Lock,
   Zap,
-  RefreshCw,
   Search,
-  Pause,
-  Play,
   LayoutGrid,
   Columns,
   List,
   Eye,
   ArrowUpRight,
-  Globe
+  Globe,
+  Video
 } from "lucide-react";
 
 interface DetectionItem {
@@ -87,16 +85,14 @@ const ACTION_COLORS: Record<string, { badge: string; border: string; glow: strin
 export default function LiveFeedPage() {
   const [entries, setEntries] = useState<LiveEntry[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const [isAutoRefresh, setIsAutoRefresh] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState("");
   const [viewMode, setViewMode] = useState<"showcase" | "inspector" | "compact">("showcase");
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Lightbox Modal state
   const [activeModalIndex, setActiveModalIndex] = useState<number | null>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
-  
+
   // Selected entry for split Inspector view
   const [selectedInspectorId, setSelectedInspectorId] = useState<string | null>(null);
 
@@ -106,7 +102,6 @@ export default function LiveFeedPage() {
       if (!res.ok) throw new Error("metrics failed");
       const data = await res.json();
       setIsConnected(true);
-      setLastUpdated(new Date().toLocaleTimeString());
 
       if (data.recentSessions?.length) {
         const formattedEntries: LiveEntry[] = data.recentSessions.map(
@@ -144,7 +139,7 @@ export default function LiveFeedPage() {
         );
 
         setEntries(formattedEntries);
-        
+
         // Auto-select first entry for inspector if none selected
         if (!selectedInspectorId && formattedEntries.length > 0) {
           setSelectedInspectorId(formattedEntries[0].id);
@@ -157,10 +152,9 @@ export default function LiveFeedPage() {
 
   useEffect(() => {
     fetchLatest();
-    if (!isAutoRefresh) return;
     const interval = setInterval(fetchLatest, 4000);
     return () => clearInterval(interval);
-  }, [isAutoRefresh]);
+  }, []);
 
   // Keyboard controls for modal navigation (Esc to close, Left/Right arrows)
   useEffect(() => {
@@ -229,62 +223,16 @@ export default function LiveFeedPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div>
             <div className="flex items-center gap-3">
-              {/* macOS 3 colored dots (Traffic Lights) */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/40 border border-white/60 shadow-xs mr-1">
-                <span className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]/80 shadow-xs inline-block cursor-pointer hover:scale-110 transition-transform" title="Close" />
-                <span className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]/80 shadow-xs inline-block cursor-pointer hover:scale-110 transition-transform" title="Minimize" />
-                <span className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]/80 shadow-xs inline-block cursor-pointer hover:scale-110 transition-transform" title="Maximize" />
+              <div className="w-9 h-9 rounded-2xl bg-[#0D0D0D] text-white flex items-center justify-center shadow-xs shrink-0">
+                <Video className="w-4 h-4 text-white" />
               </div>
-              <h1 className="text-2xl font-bold text-[#111111] tracking-tight flex items-center gap-2.5">
-                <span>Live Visual Feed</span>
-                <span className="text-[11px] px-3 py-1 rounded-full liquid-glass-pill-dark font-mono font-medium shadow-xs">
-                  Client Shield Active
-                </span>
+              <h1 className="text-2xl font-bold text-[#111111] tracking-tight">
+                Live Visual Feed
               </h1>
             </div>
             <p className="text-[13px] text-[#555555] mt-1.5 ml-1 font-medium">
-              Real-time visual stream of redacted screenshots, local secret vault tokens, and VLM actions
+              Real-time visual stream of redacted screenshots and on-device privacy actions
             </p>
-          </div>
-
-          {/* Live Controls */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Status pill */}
-            <div className="flex items-center gap-2 text-xs liquid-glass-pill px-3.5 py-1.5 shadow-xs">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  isAutoRefresh && isConnected
-                    ? "bg-emerald-500 animate-pulse"
-                    : "bg-[#888888]"
-                }`}
-              />
-              <span className="text-[#333333] font-medium font-mono text-[11px]">
-                {isAutoRefresh && isConnected ? `Live · ${lastUpdated}` : "Paused"}
-              </span>
-            </div>
-
-            {/* Toggle Auto-Refresh */}
-            <button
-              onClick={() => setIsAutoRefresh(!isAutoRefresh)}
-              className={`text-xs px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 font-medium ${
-                isAutoRefresh
-                  ? "liquid-glass-pill-dark shadow-xs"
-                  : "liquid-glass-pill text-[#555555] hover:bg-white"
-              }`}
-            >
-              {isAutoRefresh ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-              <span>{isAutoRefresh ? "Pause" : "Resume"}</span>
-            </button>
-
-            {/* Manual Refresh */}
-            <button
-              onClick={fetchLatest}
-              className="text-xs px-3.5 py-1.5 rounded-full liquid-glass-pill text-[#111111] hover:bg-white transition-all flex items-center gap-1.5 shadow-xs"
-              title="Refresh now"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Refresh</span>
-            </button>
           </div>
         </div>
       </div>
@@ -362,11 +310,10 @@ export default function LiveFeedPage() {
             <button
               key={pill.id}
               onClick={() => setSelectedFilter(pill.id)}
-              className={`text-xs px-3.5 py-1.5 rounded-full transition-all font-medium whitespace-nowrap ${
-                selectedFilter === pill.id
+              className={`text-xs px-3.5 py-1.5 rounded-full transition-all font-medium whitespace-nowrap ${selectedFilter === pill.id
                   ? "liquid-glass-pill-dark shadow-xs"
                   : "liquid-glass-pill text-[#666666] hover:text-[#111111]"
-              }`}
+                }`}
             >
               {pill.label}
             </button>
@@ -377,9 +324,8 @@ export default function LiveFeedPage() {
         <div className="flex items-center gap-1 liquid-glass-pill p-1 rounded-full self-end sm:self-auto">
           <button
             onClick={() => setViewMode("showcase")}
-            className={`px-3 py-1 rounded-full text-xs transition-colors flex items-center gap-1 font-medium ${
-              viewMode === "showcase" ? "bg-[#111111] text-white shadow-xs" : "text-[#777777] hover:text-[#111111]"
-            }`}
+            className={`px-3 py-1 rounded-full text-xs transition-colors flex items-center gap-1 font-medium ${viewMode === "showcase" ? "bg-[#111111] text-white shadow-xs" : "text-[#777777] hover:text-[#111111]"
+              }`}
             title="Large Showcase Cards"
           >
             <LayoutGrid className="w-3.5 h-3.5" />
@@ -388,9 +334,8 @@ export default function LiveFeedPage() {
 
           <button
             onClick={() => setViewMode("inspector")}
-            className={`px-3 py-1 rounded-full text-xs transition-colors flex items-center gap-1 font-medium ${
-              viewMode === "inspector" ? "bg-[#111111] text-white shadow-xs" : "text-[#777777] hover:text-[#111111]"
-            }`}
+            className={`px-3 py-1 rounded-full text-xs transition-colors flex items-center gap-1 font-medium ${viewMode === "inspector" ? "bg-[#111111] text-white shadow-xs" : "text-[#777777] hover:text-[#111111]"
+              }`}
             title="Split Inspector View"
           >
             <Columns className="w-3.5 h-3.5" />
@@ -399,9 +344,8 @@ export default function LiveFeedPage() {
 
           <button
             onClick={() => setViewMode("compact")}
-            className={`px-3 py-1 rounded-full text-xs transition-colors flex items-center gap-1 font-medium ${
-              viewMode === "compact" ? "bg-[#111111] text-white shadow-xs" : "text-[#777777] hover:text-[#111111]"
-            }`}
+            className={`px-3 py-1 rounded-full text-xs transition-colors flex items-center gap-1 font-medium ${viewMode === "compact" ? "bg-[#111111] text-white shadow-xs" : "text-[#777777] hover:text-[#111111]"
+              }`}
             title="Compact List View"
           >
             <List className="w-3.5 h-3.5" />
@@ -440,11 +384,10 @@ export default function LiveFeedPage() {
                 <div
                   key={entry.id}
                   onClick={() => setSelectedInspectorId(entry.id)}
-                  className={`cursor-pointer rounded-xl border p-3.5 transition-all flex items-start gap-3.5 ${
-                    isSelected
+                  className={`cursor-pointer rounded-xl border p-3.5 transition-all flex items-start gap-3.5 ${isSelected
                       ? "bg-zinc-800/80 border-indigo-500/50 shadow-lg shadow-indigo-500/10"
                       : "bg-zinc-900/50 border-white/6 hover:bg-zinc-900 hover:border-white/12"
-                  }`}
+                    }`}
                 >
                   {/* Thumbnail */}
                   <div className="w-20 h-14 rounded-lg overflow-hidden bg-black/60 shrink-0 border border-white/10 relative group">

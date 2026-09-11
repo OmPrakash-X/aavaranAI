@@ -52,6 +52,8 @@ export function FixedBackground() {
         alt=""
         className="w-full h-full object-cover object-center scale-100"
       />
+      {/* Soothing dark tint to eliminate glare and eye strain */}
+      <div className="absolute inset-0 bg-black/20 pointer-events-none" />
     </div>
   );
 }

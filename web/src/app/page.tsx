@@ -77,7 +77,7 @@ export default function LandingPage() {
               <div className="flex flex-wrap items-center gap-4 pt-2">
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center justify-center px-8 py-3.5 rounded-full liquid-glass-pill-dark text-white text-[14px] font-semibold tracking-wide transition-all hover:bg-[#262626] shadow-sm hover:translate-y-[-1px]"
+                  className="inline-flex items-center justify-center px-8 py-3.5 rounded-full liquid-glass-pill-dark text-white text-[14px] font-semibold tracking-wide transition-all hover:bg-[#262626] shadow-sm hover:-translate-y-px"
                 >
                   Launch Dashboard
                 </Link>
@@ -109,7 +109,7 @@ export default function LandingPage() {
             {/* Right: Floating Glass Perception Preview */}
             <div className="lg:col-span-5 relative">
               {/* Background ambient depth glow */}
-              <div className="absolute -inset-4 bg-gradient-to-tr from-black/[0.04] to-black/[0.01] rounded-3xl -z-10 blur-xl" />
+              <div className="absolute -inset-4 bg-linear-to-tr from-black/4 to-black/1 rounded-3xl -z-10 blur-xl" />
 
               {/* Liquid Glass Hero Card */}
               <div className="glass p-6 border border-white/80 shadow-glass rounded-[28px] relative transition-transform duration-300 hover:rotate-0 rotate-[1.5deg]">

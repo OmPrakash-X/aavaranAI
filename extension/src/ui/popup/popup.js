@@ -50,6 +50,17 @@ async function startAgent() {
       return;
     }
 
+    if (tab.url && (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:'))) {
+      taskInput.value = '';
+      taskInput.placeholder = 'Cannot run on internal browser page. Open a website first!';
+      taskInput.style.borderColor = '#ef4444';
+      setTimeout(() => {
+        taskInput.style.borderColor = '';
+        taskInput.placeholder = 'e.g. Click on the Sign in button';
+      }, 3500);
+      return;
+    }
+
     console.log('[Popup] Starting agent on tab', tab.id, '| Task:', task);
 
     // Send message to background service worker
@@ -114,6 +125,18 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
   if (msg.type === 'STATUS_UPDATE' && !msg.isRunning) {
     setIdleState();
+    if (msg.error) {
+      const taskInput = document.getElementById('taskInput');
+      if (taskInput) {
+        taskInput.value = '';
+        taskInput.placeholder = msg.error;
+        taskInput.style.borderColor = '#ef4444';
+        setTimeout(() => {
+          taskInput.style.borderColor = '';
+          taskInput.placeholder = 'e.g. Click on the Sign in button';
+        }, 4000);
+      }
+    }
   }
 });
 

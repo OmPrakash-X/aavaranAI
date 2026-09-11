@@ -57,39 +57,43 @@ export async function analyzeScreenshot(
   }
   const actionHistory = sessionHistories.get(request.sessionId)!;
 
-  // 1. Check if task is already complete based on history
-  // Only fire when BOTH credentials were typed AND submit was clicked.
-  // Do NOT stop just because the task string contains the word 'stop'.
-  const alreadyClickedSubmit = actionHistory.some(a =>
-    a.action === 'click' && (
-      /sign.?in|log.?in|submit|register|sign.?up|Primer/i.test(a.selector || '') ||
-      /sign.?in|log.?in|submit/i.test(a.value || '')
-    )
-  );
-  const typedCount = actionHistory.filter(a => a.action === 'type').length;
-  // Only stop when agent has typed at least once AND has clicked a submit button
-  const formFullySubmitted = alreadyClickedSubmit && typedCount >= 1;
+  // 1. Check if task is already complete based on history.
+  // ONLY apply this guard for login/sign-in tasks.
+  // Multi-step workflows (e.g. "create new repo") must NOT be stopped early.
+  const taskDescription = request.userTask || (request as any).task || '';
+  const isLoginTask = /sign.?in|log.?in|login|sign.?up|register|credentials?/i.test(taskDescription);
 
-  if (formFullySubmitted) {
-    console.log(`[AnalyzeService] Pre-VLM: Typed ${typedCount} field(s) + clicked submit. Task done.`);
-    const doneAction: AgentAction = {
-      action: 'done',
-      selector: '',
-      value: '',
-      reasoning: 'Form filled and submitted. Stopping agent.',
-      nextExpectation: 'Task completed',
-    };
-    setTimeout(() => sessionHistories.delete(request.sessionId), 10000);
-    const totalLatency = Date.now() - startTime;
-    logSession(request, doneAction, 'local_guard', 0, totalLatency)
-      .catch((err) => console.error('[AnalyzeService] Failed to log session:', err));
+  if (isLoginTask) {
+    const alreadyClickedSubmit = actionHistory.some(a =>
+      a.action === 'click' && (
+        /sign.?in|log.?in|submit|register|sign.?up|Primer/i.test(a.selector || '') ||
+        /sign.?in|log.?in|submit/i.test(a.value || '')
+      )
+    );
+    const typedCount = actionHistory.filter(a => a.action === 'type').length;
+    const formFullySubmitted = alreadyClickedSubmit && typedCount >= 1;
 
-    return {
-      action: doneAction,
-      sessionId: request.sessionId,
-      provider: 'local_guard',
-      latency: totalLatency,
-    };
+    if (formFullySubmitted) {
+      console.log(`[AnalyzeService] Pre-VLM: Login task — typed ${typedCount} field(s) + clicked submit. Task done.`);
+      const doneAction: AgentAction = {
+        action: 'done',
+        selector: '',
+        value: '',
+        reasoning: 'Login form filled and submitted. Stopping agent.',
+        nextExpectation: 'Task completed',
+      };
+      setTimeout(() => sessionHistories.delete(request.sessionId), 10000);
+      const totalLatency = Date.now() - startTime;
+      logSession(request, doneAction, 'local_guard', 0, totalLatency)
+        .catch((err) => console.error('[AnalyzeService] Failed to log session:', err));
+
+      return {
+        action: doneAction,
+        sessionId: request.sessionId,
+        provider: 'local_guard',
+        latency: totalLatency,
+      };
+    }
   }
 
   // 2. Hard step limit — prevent runaway loops
@@ -137,6 +141,42 @@ export async function analyzeScreenshot(
   let action: AgentAction;
   try {
     action = parseAction(vlmResult.rawResponse);
+
+    // Guardrail: Intercept accidental "Forgot password" or "Reset password" clicks during login tasks
+    const isForgotPassAction =
+      action.action === 'click' &&
+      /forgot|reset|recover/i.test((action.selector || '') + ' ' + (action.reasoning || ''));
+    const isLoginTask = /sign.?in|log.?in|submit|credentials/i.test(request.userTask);
+
+    if (isForgotPassAction && isLoginTask) {
+      console.warn('[AnalyzeService] Guardrail intercepted "Forgot password" action during login task.');
+      const submitBtn = request.domElements?.find(
+        (el) =>
+          (/submit|button/i.test(el.tag) || el.type === 'submit') &&
+          /sign.?in|log.?in|submit/i.test(el.text || el.selector)
+      );
+      const passwordInput = request.domElements?.find(
+        (el) => el.type === 'password' || /password/i.test(el.selector)
+      );
+
+      if (submitBtn) {
+        action = {
+          action: 'click',
+          selector: submitBtn.selector,
+          value: '',
+          reasoning: 'Clicking primary Sign In button instead of recovery link.',
+          nextExpectation: 'Form submitted',
+        };
+      } else if (passwordInput && !actionHistory.some((a) => a.selector === passwordInput.selector)) {
+        action = {
+          action: 'type',
+          selector: passwordInput.selector,
+          value: '<LOCAL_SECRET_PASSWORD>',
+          reasoning: 'Entering password into input field instead of recovery link.',
+          nextExpectation: 'Password entered',
+        };
+      }
+    }
   } catch (parseErr) {
     console.error('[AnalyzeService] Failed to parse VLM response:', parseErr);
     action = {
@@ -217,11 +257,12 @@ async function logSession(
 
   const existingSteps = await Session.countDocuments({ sessionId: request.sessionId });
 
-  // Upload redacted screenshot to Cloudinary using official SDK (best effort)
+  // Upload redacted thumbnail to Cloudinary using official SDK (lightweight ~25KB, fast, no timeout)
   let screenshotUrl: string | null = null;
-  if (request.screenshot) {
+  const imageToUpload = request.thumbnail || request.screenshot;
+  if (imageToUpload) {
     screenshotUrl = await uploadToCloudinary(
-      request.screenshot,
+      imageToUpload,
       request.sessionId,
       existingSteps,
     ).catch(() => null);
@@ -229,7 +270,7 @@ async function logSession(
 
   // Guaranteed fallback: store thumbnail (or screenshot) directly in MongoDB
   // so the dashboard always has the image immediately, even if Cloudinary fails
-  const screenshotFallback = request.thumbnail || request.screenshot;
+  const screenshotFallback = imageToUpload;
 
   await Session.create({
     sessionId: request.sessionId,

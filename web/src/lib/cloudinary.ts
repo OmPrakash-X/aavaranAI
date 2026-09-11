@@ -36,6 +36,7 @@ export async function uploadToCloudinary(
       overwrite: true,
       resource_type: 'image',
       tags: ['aavaran', 'redacted_screenshot'],
+      timeout: 8000,
     });
 
     // Apply URL optimizations (width 800, auto quality, auto format)

@@ -1,4 +1,5 @@
 // ============================================================
+
 // Content Script — Self-contained, NO ES module imports
 // Chrome MV3 content scripts cannot use import/export
 // All dependencies inlined directly in this file
@@ -315,7 +316,7 @@
 
     // Strategy 3: Match by visible text content (button/link text)
     const textMatch = selector.match(/\[text\*?=["']([^"']+)["']\]/) ||
-                      selector.match(/:contains\(["']([^"']+)["']\)/);
+      selector.match(/:contains\(["']([^"']+)["']\)/);
     const textKeyword = textMatch?.[1]?.toLowerCase();
 
     // Also extract any plain text keyword from the selector string itself
@@ -356,7 +357,7 @@
       try {
         const el = document.querySelector(token.trim());
         if (el) return el;
-      } catch (_) {}
+      } catch (_) { }
     }
 
     // Strategy 5: Find first visible interactive element matching the tag type
@@ -367,7 +368,7 @@
       for (const el of els) {
         const rect = el.getBoundingClientRect();
         if (rect.width > 0 && rect.height > 0 &&
-            rect.top >= 0 && rect.top < window.innerHeight) {
+          rect.top >= 0 && rect.top < window.innerHeight) {
           return el; // First visible matching tag
         }
       }
@@ -406,7 +407,7 @@
           if (isSubmit) {
             try {
               chrome.runtime.sendMessage({ type: 'FORM_SUBMIT_CLICKED' });
-            } catch (_) {}
+            } catch (_) { }
           }
 
           el.click();
@@ -416,13 +417,30 @@
           const el = findElement(action.selector);
           highlightEl(el);
           el.focus();
-          el.value = '';
+
+          // Native property descriptor setter so React, Vue, and Next.js input fields register changes
+          const setNativeVal = (element, val) => {
+            const proto = element instanceof HTMLTextAreaElement
+              ? window.HTMLTextAreaElement.prototype
+              : window.HTMLInputElement.prototype;
+            const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+            if (setter) {
+              setter.call(element, val);
+            } else {
+              element.value = val;
+            }
+          };
+
+          setNativeVal(el, '');
           el.dispatchEvent(new Event('input', { bubbles: true }));
+
+          let currentVal = '';
           for (const ch of (action.value || '')) {
             el.dispatchEvent(new KeyboardEvent('keydown', { key: ch, bubbles: true }));
-            el.value += ch;
+            currentVal += ch;
+            setNativeVal(el, currentVal);
             el.dispatchEvent(new Event('input', { bubbles: true }));
-            await sleep(30 + Math.random() * 30);
+            await sleep(25 + Math.random() * 25);
           }
           el.dispatchEvent(new Event('change', { bubbles: true }));
 
@@ -437,7 +455,7 @@
           if (isSearch) {
             await sleep(300);
             el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
-            el.dispatchEvent(new KeyboardEvent('keyup',  { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
+            el.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
             const form = el.closest('form');
             if (form) form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
             console.log('[Aavaran] Auto-submitted search field');
@@ -470,15 +488,29 @@
           await sleep(500);
           return { success: true, done: false };
         }
-        case 'scroll':
+        case 'scroll': {
+          // Determine scroll distance from VLM value:
+          // - numeric string (e.g. '600') → use that many pixels
+          // - 'up'   → scroll up 800px
+          // - 'down' or anything else → scroll down 800px
+          const scrollVal = action.value || '';
+          const scrollNum = parseInt(scrollVal, 10);
+          const isUp = /^up$/i.test(scrollVal.trim());
+          const scrollPx = !isNaN(scrollNum) ? scrollNum : 800;
+          const scrollDir = isUp ? -scrollPx : scrollPx;
+
           if (action.selector) {
-            try { findElement(action.selector).scrollIntoView({ behavior: 'smooth' }); }
-            catch { window.scrollBy({ top: 400, behavior: 'smooth' }); }
+            try {
+              findElement(action.selector).scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } catch {
+              window.scrollBy({ top: scrollDir, behavior: 'smooth' });
+            }
           } else {
-            window.scrollBy({ top: 400, behavior: 'smooth' });
+            window.scrollBy({ top: scrollDir, behavior: 'smooth' });
           }
-          await sleep(500);
+          await sleep(800);
           return { success: true, done: false };
+        } // end case 'scroll'
         case 'navigate':
           if (action.value) window.location.href = action.value;
           return { success: true, done: false };
@@ -541,7 +573,23 @@
 
       const rect = el.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
+      // Only include elements currently visible in the viewport.
+      // The agent should scroll explicitly first, then click what becomes visible.
       if (rect.top > window.innerHeight || rect.bottom < 0) return;
+
+      // ---- Nav / Sidebar / Header filter ----
+      // Skip links that live inside chrome navigation (header, nav, sidebar, footer).
+      // These are NOT task-relevant elements — they pollute the AI's context and
+      // cause it to click nav links instead of form controls.
+      const isNavElement = Boolean(
+        el.closest('nav, header, [role="navigation"], [role="banner"], footer') ||
+        el.closest('[class*="sidebar"], [class*="side-bar"], [class*="Sidebar"]') ||
+        el.closest('[id*="sidebar"], [id*="header"], [id*="navigation"]') ||
+        el.closest('[class*="header"], [class*="navbar"], [class*="nav-bar"]') ||
+        el.closest('[aria-label*="navigation" i], [aria-label*="sidebar" i]')
+      );
+      // Only skip pure nav links — keep buttons/inputs inside nav (e.g. search bar in header)
+      if (isNavElement && el.tagName === 'A') return;
 
       // Get visible text
       let text = '';
@@ -582,6 +630,13 @@
         }
       }
 
+      // Priority weight: form controls rank highest so AI always sees them first
+      const FORM_TAGS = new Set(['input', 'textarea', 'select']);
+      const BUTTON_TAGS = new Set(['button', 'summary']);
+      let _priority = 2; // default: link
+      if (FORM_TAGS.has(el.tagName.toLowerCase())) _priority = 0;
+      else if (BUTTON_TAGS.has(el.tagName.toLowerCase()) || el.getAttribute('role') === 'button') _priority = 1;
+
       elements.push({
         id: `el-${i}`,
         tag: el.tagName.toLowerCase(),
@@ -600,10 +655,17 @@
           width: Math.round(rect.width),
           height: Math.round(rect.height),
         },
+        _priority,
       });
     });
 
-    return elements.slice(0, 100);
+    // Sort: form inputs → buttons → links
+    // This ensures the AI always sees the most actionable elements first,
+    // regardless of where they appear in document order.
+    elements.sort((a, b) => a._priority - b._priority);
+
+    // Strip internal sort key before sending to server
+    return elements.slice(0, 60).map(({ _priority, ...el }) => el);
   } // end extractDOM
 
   // ============================================================
@@ -728,7 +790,7 @@
   };
 
   // Attempt async initialization (safe no-op if models aren't downloaded yet)
-  opticalDetector.init().catch(() => {});
+  opticalDetector.init().catch(() => { });
 
   // ============================================================
   // MESSAGE HANDLER — Routes messages from background SW
@@ -737,6 +799,10 @@
     (async () => {
       try {
         switch (message.type) {
+          case 'PING': {
+            sendResponse({ pong: true });
+            break;
+          }
 
           // ---- Extract interactive DOM elements ----
           case MESSAGES.EXTRACT_DOM: {
@@ -773,7 +839,7 @@
           case MESSAGES.REDACT_SCREENSHOT: {
             const canvas = await dataUrlToCanvas(message.screenshot);
             const manifest = redactCanvas(canvas, message.detections || []);
-            
+
             // Create a lightweight compressed thumbnail for instant dashboard storage (max 640px wide, ~25KB)
             let thumbnail = '';
             try {
@@ -784,7 +850,7 @@
               const ctx = thumbCanvas.getContext('2d');
               ctx.drawImage(canvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
               thumbnail = thumbCanvas.toDataURL('image/jpeg', 0.65);
-            } catch (_) {}
+            } catch (_) { }
 
             sendResponse({
               redactedScreenshot: canvas.toDataURL('image/jpeg', 0.85),
@@ -802,7 +868,7 @@
             chrome.runtime.sendMessage({
               type: MESSAGES.ACTION_COMPLETE,
               result,
-            }).catch(() => {});
+            }).catch(() => { });
             break;
           }
 

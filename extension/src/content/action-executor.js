@@ -41,7 +41,6 @@ export class ActionExecutor {
 
   async click(selector) {
     const el = this.findElement(selector);
-    this.scrollToElement(el);
     await this.sleep(300);
     this.highlight(el, '#6366f1');
     await this.sleep(200);
@@ -54,7 +53,6 @@ export class ActionExecutor {
     if (!value) return { success: false, error: 'No value to type' };
 
     const el = this.findElement(selector);
-    this.scrollToElement(el);
     el.focus();
     this.highlight(el, '#6366f1');
 
@@ -76,14 +74,20 @@ export class ActionExecutor {
     return { success: true, done: false };
   }
 
-  async scroll(selector) {
+  async scroll(selector, value) {
+    const scrollVal = value || '';
+    const scrollNum = parseInt(scrollVal, 10);
+    const isUp = /^up$/i.test(scrollVal.trim());
+    const scrollPx = !isNaN(scrollNum) ? scrollNum : 500;
+    const scrollDir = isUp ? -scrollPx : scrollPx;
+
     if (selector) {
       const el = this.findElement(selector);
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } else {
-      window.scrollBy({ top: 400, behavior: 'smooth' });
+      window.scrollBy({ top: scrollDir, behavior: 'smooth' });
     }
-    await this.sleep(500);
+    await this.sleep(800);
     return { success: true, done: false };
   }
 

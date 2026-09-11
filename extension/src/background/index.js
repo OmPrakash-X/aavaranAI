@@ -144,8 +144,39 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // ---- Side Panel ----
 chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: false }).catch(() => { });
 
+function isRestrictedUrl(url) {
+  if (!url) return true;
+  return (
+    url.startsWith('chrome://') ||
+    url.startsWith('chrome-extension://') ||
+    url.startsWith('edge://') ||
+    url.startsWith('about:') ||
+    url.startsWith('devtools://') ||
+    url.includes('chromewebstore.google.com')
+  );
+}
+
 // ---- Agent Lifecycle ----
-function startAgent(task, tabId) {
+async function startAgent(task, tabId) {
+  let tab;
+  try {
+    tab = await chrome.tabs.get(tabId);
+  } catch (err) {
+    console.warn('[Aavaran] Unable to get tab:', err);
+  }
+
+  if (tab?.url && isRestrictedUrl(tab.url)) {
+    const pageName = tab.url.split('/')[2] || 'internal';
+    console.warn('[Aavaran] Cannot run on restricted page:', tab.url);
+    broadcast({
+      type: MESSAGES.STATUS_UPDATE,
+      isRunning: false,
+      error: `Cannot run agent on browser internal page (${pageName}). Open an actual webpage like github.com or google.com.`,
+      sessionId: null,
+    });
+    return;
+  }
+
   isAgentRunning = true;
   // Tokenize credentials locally — server never sees user passwords/PII
   sanitizedTask = tokenizeTaskLocally(task);
@@ -157,6 +188,10 @@ function startAgent(task, tabId) {
   justSubmittedForm = false;
   console.log(`[Aavaran] Agent started | Sanitized Task: "${sanitizedTask}" | Tab: ${tabId}`);
   broadcast({ type: MESSAGES.STATUS_UPDATE, isRunning: true, task: sanitizedTask, sessionId });
+
+  // Ensure content script is ready before first cycle
+  await ensureContentScript(tabId);
+
   runCycle();
 }
 
@@ -196,8 +231,19 @@ async function runCycle() {
     console.log('[Aavaran] Running cycle...');
     const clientStartTime = performance.now();
 
-    // Step 1: Capture screenshot
-    const screenshot = await chrome.tabs.captureVisibleTab(null, {
+    // Step 1: Capture screenshot from active tab's window
+    let tab;
+    try {
+      tab = await chrome.tabs.get(activeTabId);
+    } catch (e) {
+      throw new Error('Active tab is no longer available');
+    }
+
+    if (!tab || isRestrictedUrl(tab.url)) {
+      throw new Error('Target tab is a browser internal page (' + (tab?.url || 'system') + '). Navigate to a standard website first.');
+    }
+
+    const screenshot = await chrome.tabs.captureVisibleTab(tab.windowId, {
       format: 'png',
       quality: CONFIG.SCREENSHOT_QUALITY,
     });
@@ -298,9 +344,10 @@ async function runCycle() {
         value: detokenizeValue(serverResult.action.value),
       };
 
-      // Detect if this is a form submit click
+      // Detect if this is a form submit click — ONLY auto-stop for login tasks
       const action = actionToExecute;
-      if (action.action === 'click') {
+      const isLoginTask = /sign.?in|log.?in|login|sign.?up|register|credentials?/i.test(sanitizedTask || currentTask);
+      if (action.action === 'click' && isLoginTask) {
         const selectorText = (action.selector || '').toLowerCase();
         const valueText = (action.value || '').toLowerCase();
         const reasonText = (action.reasoning || '').toLowerCase();
@@ -308,7 +355,7 @@ async function runCycle() {
           SUBMIT_KEYWORDS.test(valueText) ||
           SUBMIT_KEYWORDS.test(reasonText);
         if (isSubmitClick) {
-          console.log('[Aavaran] Submit button clicked — will auto-stop after next cycle.');
+          console.log('[Aavaran] Login submit clicked — will auto-stop after next cycle.');
           justSubmittedForm = true;
         }
       }
@@ -322,7 +369,26 @@ async function runCycle() {
     // Next cycle triggered by ACTION_COMPLETE from content script
 
   } catch (err) {
-    console.error('[Aavaran] Cycle error:', err.message || err);
+    const errMsg = err.message || String(err);
+    console.error('[Aavaran] Cycle error:', errMsg);
+
+    // Stop and report non-retryable / configuration errors
+    const isFatal =
+      errMsg.includes('Cannot connect to Aavaran server') ||
+      errMsg.includes('browser internal page') ||
+      errMsg.includes('activeTab') ||
+      errMsg.includes('no longer available');
+
+    if (isFatal) {
+      broadcast({
+        type: MESSAGES.STATUS_UPDATE,
+        isRunning: false,
+        error: errMsg,
+      });
+      stopAgent();
+      return;
+    }
+
     if (isAgentRunning) {
       // Auto-retry after delay
       setTimeout(() => runCycle(), CONFIG.CAPTURE_DELAY_MS * 2);
@@ -331,22 +397,88 @@ async function runCycle() {
 }
 
 // ---- Helpers ----
-function sendToTab(tabId, msg) {
-  return chrome.tabs.sendMessage(tabId, msg);
+/**
+ * Ensure content script is running on the tab; inject dynamically if not.
+ */
+async function ensureContentScript(tabId) {
+  try {
+    const res = await chrome.tabs.sendMessage(tabId, { type: 'PING' });
+    if (res?.pong) return true;
+  } catch (_) {
+    // Content script not answering
+  }
+
+  console.log(`[Aavaran] Injecting content script into tab ${tabId}...`);
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ['content/index.js'],
+    });
+    await new Promise(r => setTimeout(r, 400));
+    return true;
+  } catch (err1) {
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ['src/content/index.js'],
+      });
+      await new Promise(r => setTimeout(r, 400));
+      return true;
+    } catch (err2) {
+      console.warn('[Aavaran] Dynamic script injection failed:', err2.message);
+      return false;
+    }
+  }
+}
+
+/**
+ * Send a message to a tab's content script.
+ * Retries up to MAX_TAB_RETRIES times if the content script isn't ready yet
+ * (e.g. page just navigated and the script is still injecting).
+ */
+const MAX_TAB_RETRIES = 5;
+const TAB_RETRY_DELAY_MS = 800;
+
+async function sendToTab(tabId, msg, attempt = 1) {
+  try {
+    return await chrome.tabs.sendMessage(tabId, msg);
+  } catch (err) {
+    const isConnectionError = err?.message?.includes('Receiving end does not exist') ||
+      err?.message?.includes('Could not establish connection');
+
+    if (isConnectionError && attempt <= MAX_TAB_RETRIES) {
+      console.warn(`[Aavaran] Content script not ready (attempt ${attempt}/${MAX_TAB_RETRIES}), recovering...`);
+      if (attempt === 1) {
+        await ensureContentScript(tabId);
+      } else {
+        await new Promise(r => setTimeout(r, TAB_RETRY_DELAY_MS));
+      }
+      return sendToTab(tabId, msg, attempt + 1);
+    }
+
+    throw err;
+  }
 }
 
 async function callServer(data) {
   const url = `${CONFIG.SERVER_URL}/api/v1/analyze`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) {
-    const errText = await res.text().catch(() => res.statusText);
-    throw new Error(`Server ${res.status}: ${errText}`);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => res.statusText);
+      throw new Error(`Server ${res.status}: ${errText}`);
+    }
+    return res.json();
+  } catch (err) {
+    if (err.name === 'TypeError' && (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError'))) {
+      throw new Error(`Cannot connect to Aavaran server at ${CONFIG.SERVER_URL}. Is Next.js running ("npm run dev" in /web)?`);
+    }
+    throw err;
   }
-  return res.json();
 }
 
 console.log('[Aavaran] Service worker loaded ✅');

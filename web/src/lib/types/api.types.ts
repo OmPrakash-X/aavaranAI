@@ -99,6 +99,7 @@ export interface AnalyzeRequest {
   domElements: DOMElement[];
   redactionManifest: RedactionEntry[];
   userTask: string;
+  task?: string;               // Optional alias for userTask
   pageTitle: string;
   sessionId: string;
   clientLatency?: number;
