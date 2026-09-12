@@ -23,6 +23,9 @@ export const MESSAGES = {
 
   // Background → UI (CLIP screen classification result)
   SCREEN_CLASSIFIED: 'SCREEN_CLASSIFIED',
+
+  // Screenshot utilities
+  CAPTURE_MASKED_SCREENSHOT: 'CAPTURE_MASKED_SCREENSHOT',
 };
 
 export const CONFIG = {

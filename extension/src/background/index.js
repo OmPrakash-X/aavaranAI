@@ -135,6 +135,75 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       console.log('[Aavaran] Submit button clicked in DOM — will auto-stop after action completes.');
       sendResponse({ ok: true });
       break;
+    case 'CAPTURE_MASKED_SCREENSHOT':
+    case MESSAGES.CAPTURE_MASKED_SCREENSHOT:
+      (async () => {
+        try {
+          let tab;
+          if (msg.tabId) {
+            tab = await chrome.tabs.get(msg.tabId).catch(() => null);
+          }
+          if (!tab) {
+            const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+            tab = tabs[0];
+          }
+          if (!tab) {
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            tab = tabs[0];
+          }
+
+          if (!tab?.id) {
+            sendResponse({ success: false, error: 'No active webpage tab found. Open a site like github.com.' });
+            return;
+          }
+          if (isRestrictedUrl(tab.url)) {
+            sendResponse({ success: false, error: 'Cannot capture browser internal page (' + (tab.url?.split('/')[2] || 'system') + '). Switch to an open website tab.' });
+            return;
+          }
+
+          // Ensure content script is injected on this tab
+          await ensureContentScript(tab.id);
+
+          const screenshot = await chrome.tabs.captureVisibleTab(tab.windowId, {
+            format: 'png',
+            quality: 95,
+          });
+
+          let piiData = { detections: [] };
+          try {
+            piiData = await sendToTab(tab.id, {
+              type: MESSAGES.DETECT_PII,
+              screenshot,
+            });
+          } catch (piiErr) {
+            console.warn('[Aavaran] PII detection note:', piiErr?.message);
+          }
+
+          let redacted = { redactedScreenshot: screenshot };
+          try {
+            redacted = await sendToTab(tab.id, {
+              type: MESSAGES.REDACT_SCREENSHOT,
+              screenshot,
+              detections: piiData?.detections || [],
+            });
+          } catch (redactErr) {
+            console.warn('[Aavaran] Redaction note:', redactErr?.message);
+          }
+
+          sendResponse({
+            success: true,
+            redactedScreenshot: redacted?.redactedScreenshot || screenshot,
+            thumbnail: redacted?.thumbnail || '',
+            detectionsCount: piiData?.detections?.length || 0,
+            detections: piiData?.detections || [],
+            pageTitle: tab.title || 'webpage',
+          });
+        } catch (err) {
+          console.error('[Aavaran] Capture masked screenshot error:', err);
+          sendResponse({ success: false, error: err.message || 'Capture failed' });
+        }
+      })();
+      return true;
     default:
       sendResponse({ error: 'Unknown message' });
   }
@@ -324,6 +393,8 @@ async function runCycle() {
       action: serverResult.action,
       provider: serverResult.provider,
       detections: piiData.detections?.length || 0,
+      redactedScreenshot: redacted.redactedScreenshot,
+      thumbnail: redacted.thumbnail,
     });
 
     // Step 7: Done?

@@ -4,10 +4,61 @@
 
 let actionCount = 0;
 
+function downloadDataUrl(dataUrl, filename) {
+  if (!dataUrl) return;
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = filename || `aavaran_masked_${Date.now()}.png`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // ---- Wire up buttons via addEventListener (MV3 CSP requires this) ----
   document.getElementById('startBtn').addEventListener('click', startAgent);
   document.getElementById('stopBtn').addEventListener('click', stopAgent);
+
+  const captureMaskedBtn = document.getElementById('captureMaskedBtn');
+  if (captureMaskedBtn) {
+    captureMaskedBtn.addEventListener('click', async () => {
+      const originalText = captureMaskedBtn.innerHTML;
+      captureMaskedBtn.innerHTML = '⏳ Masking...';
+      captureMaskedBtn.disabled = true;
+
+      try {
+        let [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+        if (!tab) {
+          [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        }
+        if (!tab?.id) {
+          alert('No active webpage found. Please open an active website tab.');
+          return;
+        }
+        if (tab.url && (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:'))) {
+          alert('Cannot capture browser internal page (' + (tab.url.split('/')[2] || 'system') + '). Please switch to a website like github.com or google.com.');
+          return;
+        }
+
+        chrome.runtime.sendMessage({ type: 'CAPTURE_MASKED_SCREENSHOT', tabId: tab.id }, (res) => {
+          if (chrome.runtime.lastError || !res?.success) {
+            alert('Capture failed: ' + (res?.error || chrome.runtime.lastError?.message));
+            return;
+          }
+
+          const filename = `aavaran_masked_${(res.pageTitle || 'screen').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${Date.now()}.png`;
+          downloadDataUrl(res.redactedScreenshot, filename);
+        });
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        setTimeout(() => {
+          captureMaskedBtn.innerHTML = originalText;
+          captureMaskedBtn.disabled = false;
+        }, 1200);
+      }
+    });
+  }
 
   // ---- Dashboard link ----
   document.getElementById('dashboardLink').addEventListener('click', (e) => {
