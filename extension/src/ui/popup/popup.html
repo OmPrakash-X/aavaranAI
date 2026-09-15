@@ -259,6 +259,37 @@
       font-weight: 500;
     }
 
+    /* ─── GPU BADGE ─────────────────────────────────────── */
+    .gpu-status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 12px;
+      background: var(--color-surface-01);
+      border: 1px solid var(--color-border-light);
+      border-radius: 10px;
+    }
+
+    .gpu-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #888;
+      flex-shrink: 0;
+    }
+    .gpu-dot.active { background: #111; box-shadow: 0 0 5px rgba(0,0,0,0.3); }
+    .gpu-dot.wasm   { background: #bbb; }
+
+    .gpu-text {
+      font-size: 11px; font-weight: 600;
+      color: var(--color-text-primary);
+    }
+    .gpu-sub {
+      font-size: 10px;
+      color: var(--color-text-secondary);
+      font-family: monospace;
+      margin-left: auto;
+    }
+
     /* ─── FOOTER (52px) ─────────────────────────────────── */
     .footer {
       height: 52px;
@@ -333,6 +364,13 @@
       </button>
     </div>
 
+    <!-- GPU Backend Status -->
+    <div class="gpu-status" id="gpuStatusRow">
+      <span class="gpu-dot" id="gpuDot"></span>
+      <span class="gpu-text" id="gpuText">Detecting compute backend...</span>
+      <span class="gpu-sub" id="gpuSub"></span>
+    </div>
+
     <!-- 4 Metrics Grid -->
     <div class="metrics-grid">
       <div class="metric-card">
@@ -348,8 +386,16 @@
         <div class="metric-label">Actions Done</div>
       </div>
       <div class="metric-card">
-        <div class="metric-value" id="metricProvider">Gemini</div>
+        <div class="metric-value" id="metricProvider">—</div>
         <div class="metric-label">VLM Tier</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" id="metricPrecision">—</div>
+        <div class="metric-label">Precision %</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" id="metricRecall">—</div>
+        <div class="metric-label">Recall %</div>
       </div>
     </div>
   </div>

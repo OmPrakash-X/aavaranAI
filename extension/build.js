@@ -50,6 +50,9 @@ function copyStatics() {
   try { copyFileSync(resolve(__dirname, 'src/ui/popup/popup.css'), `${outDir}/ui/popup/popup.css`); } catch(e) {}
   try { copyFileSync(resolve(__dirname, 'src/ui/sidepanel/sidepanel.css'), `${outDir}/ui/sidepanel/sidepanel.css`); } catch(e) {}
 
+  // Copy Firefox MV2 manifest
+  try { copyFileSync(resolve(__dirname, 'manifest_v2.json'), `${outDir}/manifest_v2.json`); } catch(e) {}
+
   // Copy styles/ if present
   const stylesSrc = resolve(__dirname, 'styles');
   if (existsSync(stylesSrc)) {
@@ -62,13 +65,20 @@ function copyStatics() {
     cpSync(assetsSrc, `${outDir}/assets`, { recursive: true });
   }
 
-  // Copy lib/ (tesseract, transformers)
+  // Copy lib/ (tesseract, transformers, mediapipe wasm)
   const libSrc = resolve(__dirname, 'lib');
   if (existsSync(libSrc)) {
     cpSync(libSrc, `${outDir}/lib`, { recursive: true });
   }
 
-  console.log('[Build] Static files, assets, models, and libs copied');
+  // Copy compat/ (Firefox shim)
+  const compatSrc = resolve(__dirname, 'src/compat');
+  if (existsSync(compatSrc)) {
+    if (!existsSync(`${outDir}/compat`)) mkdirSync(`${outDir}/compat`, { recursive: true });
+    cpSync(compatSrc, `${outDir}/compat`, { recursive: true });
+  }
+
+  console.log('[Build] Static files, assets, models, libs, and Firefox shim copied');
 }
 
 // ---- esbuild config ----

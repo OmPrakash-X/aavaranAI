@@ -328,9 +328,10 @@ async function runCycle() {
       screenshot,
     });
     lastClassification = piiData.classification || null;
+    const piiTimings = piiData.timings || null;  // Per-layer timings for sidepanel
     console.log(`[Aavaran] PII detected: ${piiData.detections?.length || 0} items`);
 
-    // Broadcast screen classification to sidepanel
+    // Broadcast screen classification to sidepanel (includes WebGPU device info)
     if (lastClassification) {
       broadcast({ type: MESSAGES.SCREEN_CLASSIFIED, classification: lastClassification });
     }
@@ -385,6 +386,12 @@ async function runCycle() {
     }
 
     // Step 6: Broadcast metrics to popup/sidepanel
+    // Broadcast full detections array so sidepanel PII Stats panel can update precision/recall
+    broadcast({
+      type: 'PII_DETECTIONS',
+      detections: piiData.detections || [],
+    });
+
     broadcast({
       type: MESSAGES.METRICS_UPDATE,
       latency: (serverResult.latency || 0) + (clientLatency || 0),
@@ -393,6 +400,8 @@ async function runCycle() {
       action: serverResult.action,
       provider: serverResult.provider,
       detections: piiData.detections?.length || 0,
+      detectionsArr: piiData.detections || [],
+      timings: piiTimings,  // Real per-layer timings from content script (ms)
       redactedScreenshot: redacted.redactedScreenshot,
       thumbnail: redacted.thumbnail,
     });

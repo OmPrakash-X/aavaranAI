@@ -53,10 +53,47 @@ const DOWNLOAD_ITEMS = [
     url: 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js',
     dest: resolve(rootDir, 'lib/transformers.min.js'),
   },
+  // 4. MediaPipe Vision Tasks WASM — required for BlazeFace face detection
+  {
+    name: 'MediaPipe Vision Bundle (MJS)',
+    url: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs',
+    dest: resolve(rootDir, 'lib/vision_bundle.mjs'),
+  },
+  {
+    name: 'MediaPipe WASM JS loader',
+    url: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm/vision_wasm_internal.js',
+    dest: resolve(rootDir, 'lib/wasm/vision_wasm_internal.js'),
+  },
+  {
+    name: 'MediaPipe WASM binary',
+    url: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm/vision_wasm_internal.wasm',
+    dest: resolve(rootDir, 'lib/wasm/vision_wasm_internal.wasm'),
+  },
+  {
+    name: 'MediaPipe WASM (no-SIMD) JS',
+    url: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm/vision_wasm_nosimd_internal.js',
+    dest: resolve(rootDir, 'lib/wasm/vision_wasm_nosimd_internal.js'),
+  },
+  {
+    name: 'MediaPipe WASM (no-SIMD) binary',
+    url: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm/vision_wasm_nosimd_internal.wasm',
+    dest: resolve(rootDir, 'lib/wasm/vision_wasm_nosimd_internal.wasm'),
+  },
+  // 5. Tesseract SIMD WASM core — required for OCR to actually run
+  {
+    name: 'Tesseract SIMD WASM Core',
+    url: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.0.0/tesseract-core-simd.wasm.js',
+    dest: resolve(rootDir, 'lib/tesseract-core-simd.wasm.js'),
+  },
 ];
 
 function downloadFile(item) {
   return new Promise((res, rej) => {
+    // Skip if already downloaded
+    if (existsSync(item.dest)) {
+      console.log(`[Downloader] ⏭  Skipping (already present): ${item.name}`);
+      return res();
+    }
     console.log(`[Downloader] Fetching ${item.name}...`);
     const file = createWriteStream(item.dest);
 

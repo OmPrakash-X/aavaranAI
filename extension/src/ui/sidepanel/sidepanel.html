@@ -7,7 +7,6 @@
   <style>
     /* ============================================================
        Liquid Glass Monochrome UI — Sidepanel
-       DESIGN.md Specifications
        ============================================================ */
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -29,268 +28,408 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
 
-    /* ─── HEADER (52px) ─────────────────────────────────── */
+    /* ─── HEADER ─────────────────────────────────────────── */
     .sp-header {
-      height: 54px;
-      padding: 0 16px;
-      background: rgba(255, 255, 255, 0.90);
+      padding: 0 14px;
+      height: 50px;
+      background: rgba(255,255,255,0.92);
       backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--color-border-light);
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+      flex-shrink: 0;
     }
 
     .sp-logo {
-      width: 28px;
-      height: 28px;
+      width: 26px; height: 26px;
       border-radius: 50%;
       background: var(--color-dark-00);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
-
-    .sp-logo svg {
-      width: 14px;
-      height: 14px;
-      color: white;
-    }
+    .sp-logo svg { width: 13px; height: 13px; color: white; }
 
     .sp-header h1 {
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: -0.01em;
+      font-size: 13px; font-weight: 700; letter-spacing: -0.01em;
       color: var(--color-text-primary);
     }
 
-    .sp-header .sp-status {
-      font-size: 11px;
+    .sp-header-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .sp-status {
+      font-size: 10px;
       font-family: monospace;
       color: var(--color-text-secondary);
       background: var(--color-surface-02);
-      padding: 3px 10px;
+      padding: 3px 8px;
       border-radius: 9999px;
       border: 1px solid var(--color-border-light);
     }
 
     .sp-btn-shot {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
+      display: inline-flex; align-items: center; gap: 4px;
       background: var(--color-surface-02);
       border: 1px solid var(--color-border-light);
       border-radius: 9999px;
-      padding: 4px 10px;
-      font-size: 11px;
-      font-weight: 600;
+      padding: 4px 9px;
+      font-size: 10px; font-weight: 600;
       color: var(--color-text-primary);
       cursor: pointer;
       transition: all 0.15s ease;
-      margin-left: auto;
     }
+    .sp-btn-shot:hover { background: #111; color: #fff; border-color: #111; }
+    .sp-btn-shot svg { width: 11px; height: 11px; }
 
-    .sp-btn-shot:hover {
-      background: #111111;
-      color: #ffffff;
-      border-color: #111111;
-    }
-
-    .sp-btn-shot svg {
-      width: 13px;
-      height: 13px;
-    }
-
-    /* ─── CHAT AREA ──────────────────────────────────────── */
-    .chat-area {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
+    /* ─── TABS ──────────────────────────────────────────── */
+    .sp-tabs {
       display: flex;
-      flex-direction: column;
-      gap: 12px;
+      border-bottom: 1px solid var(--color-border-light);
+      background: rgba(255,255,255,0.85);
+      flex-shrink: 0;
     }
-
-    .msg-screenshot-preview {
-      margin-top: 8px;
-      border-radius: 8px;
-      overflow: hidden;
-      border: 1px solid var(--color-border-light);
-      background: #111;
-      position: relative;
-    }
-
-    .msg-screenshot-preview img {
-      width: 100%;
-      max-height: 140px;
-      object-fit: cover;
-      display: block;
-      cursor: pointer;
-      transition: opacity 0.15s;
-    }
-
-    .msg-screenshot-preview:hover img {
-      opacity: 0.9;
-    }
-
-    .btn-frame-download {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      margin-top: 6px;
-      padding: 4px 10px;
-      background: var(--color-surface-02);
-      border: 1px solid var(--color-border-light);
-      border-radius: 6px;
+    .sp-tab {
+      flex: 1;
+      padding: 9px 6px;
       font-size: 11px;
       font-weight: 600;
-      color: var(--color-text-primary);
+      color: var(--color-text-secondary);
+      background: transparent;
+      border: none;
       cursor: pointer;
-      transition: all 0.15s ease;
-      text-decoration: none;
+      transition: all 0.15s;
+      border-bottom: 2px solid transparent;
+      letter-spacing: 0.01em;
     }
+    .sp-tab.active {
+      color: var(--color-text-primary);
+      border-bottom-color: #111;
+      background: var(--color-surface-01);
+    }
+    .sp-tab:hover:not(.active) { color: var(--color-text-primary); }
 
-    .btn-frame-download:hover {
-      background: #111111;
-      color: #ffffff;
-      border-color: #111111;
-    }
+    /* ─── TAB PANELS ────────────────────────────────────── */
+    .tab-panel { display: none; flex: 1; overflow-y: auto; flex-direction: column; }
+    .tab-panel.active { display: flex; }
 
-    .btn-frame-download svg {
-      width: 12px;
-      height: 12px;
+    /* ─── CHAT AREA ─────────────────────────────────────── */
+    #panel-chat { padding: 12px; gap: 10px; }
+
+    .welcome {
+      text-align: center; padding: 28px 14px;
+      color: var(--color-text-secondary);
+      background: var(--color-surface-01);
+      border: 1px solid var(--color-border-light);
+      border-radius: 16px;
     }
+    .welcome h2 { font-size: 14px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 5px; }
+    .welcome p { font-size: 11px; line-height: 1.6; }
 
     .msg {
-      max-width: 88%;
-      padding: 10px 14px;
-      font-size: 13px;
-      line-height: 1.5;
+      max-width: 90%;
+      padding: 9px 13px;
+      font-size: 12px; line-height: 1.5;
       animation: fadeIn 0.2s ease-out;
       box-shadow: 0 1px 3px rgba(0,0,0,0.02);
     }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
 
     .msg.agent {
       background: var(--color-surface-01);
       border: 1px solid var(--color-border-light);
-      color: var(--color-text-primary);
       align-self: flex-start;
-      border-radius: 16px;
-      border-bottom-left-radius: 4px;
+      border-radius: 14px; border-bottom-left-radius: 3px;
     }
-
     .msg.user {
-      background: var(--color-dark-00);
-      color: #FFFFFF;
+      background: var(--color-dark-00); color: #fff;
       align-self: flex-end;
-      border-radius: 16px;
-      border-bottom-right-radius: 4px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      border-radius: 14px; border-bottom-right-radius: 3px;
     }
-
     .msg.action {
       background: var(--color-surface-01);
       border: 1px solid var(--color-border-light);
+      border-left: 3px solid #111;
       align-self: flex-start;
-      font-size: 12px;
-      font-family: monospace;
-      color: var(--color-text-primary);
-      border-radius: 12px;
-      border-left: 3px solid #111111;
+      font-family: monospace; font-size: 11px;
+      border-radius: 10px;
     }
-
     .msg .msg-meta {
-      font-size: 10px;
-      color: var(--color-text-secondary);
-      margin-top: 5px;
-      font-family: monospace;
+      font-size: 9px; color: var(--color-text-secondary);
+      margin-top: 4px; font-family: monospace;
+    }
+    .msg-screenshot-preview {
+      margin-top: 6px; border-radius: 8px; overflow: hidden;
+      border: 1px solid var(--color-border-light);
+    }
+    .msg-screenshot-preview img {
+      width: 100%; max-height: 130px; object-fit: cover; display: block;
+      cursor: pointer;
+    }
+    .btn-frame-download {
+      display: inline-flex; align-items: center; gap: 4px;
+      margin-top: 5px; padding: 3px 9px;
+      background: var(--color-surface-02);
+      border: 1px solid var(--color-border-light);
+      border-radius: 6px; font-size: 10px; font-weight: 600;
+      color: var(--color-text-primary); cursor: pointer; text-decoration: none;
+      transition: all 0.15s;
+    }
+    .btn-frame-download:hover { background: #111; color: #fff; border-color: #111; }
+
+    /* ─── METRICS PANEL ─────────────────────────────────── */
+    #panel-metrics { padding: 12px; gap: 10px; }
+
+    .metrics-section-title {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--color-text-secondary);
+      padding: 0 2px;
     }
 
-    /* ─── INPUT BAR (56px) ───────────────────────────────── */
-    .input-bar {
-      padding: 10px 14px;
-      background: rgba(255, 255, 255, 0.90);
-      backdrop-filter: blur(16px);
-      border-top: 1px solid var(--color-border-light);
-      display: flex;
+    /* Resource Row — 3 cards side by side */
+    .resource-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
       gap: 8px;
     }
 
+    /* Perf Row — 2 wide cards */
+    .perf-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric-card {
+      background: var(--color-surface-01);
+      border: 1px solid var(--color-border-light);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+    .metric-card.dark { background: #0D0D0D; border-color: #222; }
+
+    .metric-value {
+      font-size: 18px; font-weight: 700;
+      color: var(--color-text-primary);
+      font-variant-numeric: tabular-nums; line-height: 1.1;
+    }
+    .metric-card.dark .metric-value { color: #fff; }
+
+    .metric-label {
+      font-size: 9px; color: var(--color-text-secondary);
+      margin-top: 3px; text-transform: uppercase;
+      letter-spacing: 0.04em; font-weight: 600;
+    }
+    .metric-card.dark .metric-label { color: rgba(255,255,255,0.5); }
+
+    .metric-bar {
+      margin-top: 6px;
+      height: 3px;
+      border-radius: 9999px;
+      background: var(--color-border-light);
+      overflow: hidden;
+    }
+    .metric-bar-fill {
+      height: 100%; border-radius: 9999px;
+      background: #111;
+      transition: width 0.5s ease;
+      width: 0%;
+    }
+    .metric-card.dark .metric-bar { background: rgba(255,255,255,0.1); }
+    .metric-card.dark .metric-bar-fill { background: rgba(255,255,255,0.8); }
+
+    /* WebGPU Badge */
+    .gpu-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .gpu-badge.active { background: #111; color: #fff; }
+    .gpu-badge.wasm { background: #F0F0F0; color: #888; border: 1px solid #E0E0E0; }
+    .gpu-badge.inactive { background: #F0F0F0; color: #aaa; border: 1px solid #E8E8E8; }
+    .gpu-badge .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+    /* Pipeline Timing Stack */
+    .pipeline-card {
+      background: var(--color-surface-01);
+      border: 1px solid var(--color-border-light);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .pipeline-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 0;
+    }
+    .pipeline-row + .pipeline-row {
+      border-top: 1px solid var(--color-border-light);
+    }
+    .pipeline-name {
+      font-size: 11px; font-weight: 600; color: var(--color-text-primary);
+      min-width: 80px;
+    }
+    .pipeline-bar-wrap {
+      flex: 1; height: 6px;
+      background: var(--color-border-light);
+      border-radius: 9999px; overflow: hidden;
+    }
+    .pipeline-bar-inner {
+      height: 100%; border-radius: 9999px;
+      background: #111;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+    .pipeline-ms {
+      font-size: 10px; font-family: monospace;
+      color: var(--color-text-secondary);
+      min-width: 40px; text-align: right;
+    }
+
+    /* ─── PII DETECTION PANEL ───────────────────────────── */
+    #panel-pii { padding: 12px; gap: 10px; }
+
+    .pii-stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .pii-score-card {
+      background: var(--color-surface-01);
+      border: 1px solid var(--color-border-light);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+    .pii-score-card .score-val {
+      font-size: 28px; font-weight: 800;
+      color: var(--color-text-primary);
+      line-height: 1;
+    }
+    .pii-score-card .score-label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--color-text-secondary);
+      margin-top: 4px;
+    }
+    .pii-score-card .score-sublabel {
+      font-size: 9px; color: #aaa; margin-top: 2px;
+    }
+
+    /* Precision / Recall big scores */
+    .precision-recall-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .pr-card {
+      background: #0D0D0D;
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+    .pr-card .pr-val {
+      font-size: 26px; font-weight: 800; color: #fff; line-height: 1;
+    }
+    .pr-card .pr-label {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: rgba(255,255,255,0.5);
+      margin-top: 4px;
+    }
+
+    /* Detection type breakdown */
+    .breakdown-card {
+      background: var(--color-surface-01);
+      border: 1px solid var(--color-border-light);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .breakdown-title {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--color-text-secondary);
+      margin-bottom: 8px;
+    }
+    .breakdown-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 3px 0;
+    }
+    .breakdown-type {
+      font-size: 11px; font-weight: 600;
+      color: var(--color-text-primary);
+      min-width: 80px;
+    }
+    .breakdown-bar-wrap {
+      flex: 1; height: 4px;
+      background: var(--color-border-light);
+      border-radius: 9999px; overflow: hidden;
+    }
+    .breakdown-bar-fill {
+      height: 100%; border-radius: 9999px;
+      background: #111;
+      transition: width 0.4s ease;
+    }
+    .breakdown-count {
+      font-size: 10px; font-family: monospace;
+      color: var(--color-text-secondary);
+      min-width: 20px; text-align: right;
+    }
+
+    /* Layer badges */
+    .layer-badges {
+      display: flex; flex-wrap: wrap; gap: 5px;
+    }
+    .layer-badge {
+      font-size: 10px; font-weight: 600; padding: 3px 8px;
+      border-radius: 9999px; border: 1px solid var(--color-border-light);
+      background: var(--color-surface-02); color: var(--color-text-secondary);
+      transition: all 0.2s;
+    }
+    .layer-badge.active-layer { background: #111; color: #fff; border-color: #111; }
+    .layer-badge.skip-layer { opacity: 0.35; }
+
+    /* ─── INPUT BAR ─────────────────────────────────────── */
+    .input-bar {
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.92);
+      border-top: 1px solid var(--color-border-light);
+      display: flex; gap: 7px;
+      flex-shrink: 0;
+    }
     .input-bar input {
-      flex: 1;
-      padding: 10px 14px;
+      flex: 1; padding: 9px 13px;
       background: var(--color-surface-02);
       border: 1px solid var(--color-border-light);
       border-radius: 9999px;
       color: var(--color-text-primary);
-      font-size: 13px;
-      outline: none;
-      font-family: inherit;
-      transition: all 0.15s ease;
+      font-size: 12px; outline: none; font-family: inherit;
+      transition: all 0.15s;
     }
-
-    .input-bar input::placeholder {
-      color: #AAAAAA;
-    }
-
-    .input-bar input:focus {
-      background: #FFFFFF;
-      border-color: #111111;
-    }
-
+    .input-bar input:focus { background: #fff; border-color: #111; }
+    .input-bar input::placeholder { color: #aaa; }
     .input-bar button {
-      padding: 10px 18px;
-      background: var(--color-dark-00);
-      border: none;
-      border-radius: 9999px;
-      color: white;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      padding: 9px 16px; background: #0D0D0D; border: none;
+      border-radius: 9999px; color: white;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: all 0.15s;
     }
+    .input-bar button:hover { background: #262626; }
+    .input-bar button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .input-bar button:hover {
-      background: #262626;
-    }
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 9999px; }
 
-    .input-bar button:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    /* ─── WELCOME BANNER ─────────────────────────────────── */
-    .welcome {
-      text-align: center;
-      padding: 36px 16px;
-      color: var(--color-text-secondary);
-      background: var(--color-surface-01);
-      border: 1px solid var(--color-border-light);
-      border-radius: 18px;
-    }
-
-    .welcome h2 {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--color-text-primary);
-      margin-bottom: 6px;
-    }
-
-    .welcome p {
-      font-size: 12px;
-      line-height: 1.6;
-    }
+    /* Divider */
+    .sp-divider { height: 1px; background: var(--color-border-light); margin: 2px 0; }
   </style>
 </head>
 <body>
@@ -301,33 +440,205 @@
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
       </svg>
     </div>
-    <h1>Aavaran Agent</h1>
-    <button class="sp-btn-shot" id="captureBtn" title="Capture & Download Masked Screenshot">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-        <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-      <span>Mask & Save</span>
-    </button>
-    <span class="sp-status" id="spStatus">● Idle</span>
+    <h1>Aavaran</h1>
+    <div class="sp-header-right">
+      <button class="sp-btn-shot" id="captureBtn" title="Capture & Mask Screenshot">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <span>Mask</span>
+      </button>
+      <span class="sp-status" id="spStatus">● Idle</span>
+    </div>
   </div>
 
-  <!-- Chat Area -->
-  <div class="chat-area" id="chatArea">
-    <div class="welcome">
-      <h2>Aavaran Agent</h2>
+  <!-- Tabs -->
+  <div class="sp-tabs">
+    <button class="sp-tab active" id="tab-chat" onclick="switchTab('chat')">💬 Agent</button>
+    <button class="sp-tab" id="tab-metrics" onclick="switchTab('metrics')">📊 Performance</button>
+    <button class="sp-tab" id="tab-pii" onclick="switchTab('pii')">🛡️ PII Stats</button>
+  </div>
+
+  <!-- Tab: Chat -->
+  <div class="tab-panel active" id="panel-chat">
+    <div class="welcome" id="welcomeMsg">
+      <h2>Aavaran Privacy Agent</h2>
       <p>
-        Describe any task to execute.<br>
-        PII is automatically masked client-side before<br>
-        visual perception frames reach cloud VLMs.
+        Enter any task below.<br>
+        PII is detected &amp; masked client-side<br>
+        before visual context reaches cloud VLMs.
       </p>
     </div>
   </div>
 
-  <!-- Input Bar -->
+  <!-- Tab: Performance Metrics -->
+  <div class="tab-panel" id="panel-metrics">
+
+    <!-- Compute Backend -->
+    <div class="metrics-section-title">Compute Backend</div>
+    <div style="display:flex; align-items:center; gap:8px; padding: 4px 2px;">
+      <span id="gpuBadge" class="gpu-badge inactive">
+        <span class="dot"></span> WebGPU — Not Detected
+      </span>
+      <span id="deviceInfo" style="font-size:10px; color:#888; margin-left:4px; font-family:monospace;"></span>
+    </div>
+
+    <!-- Resource Utilization -->
+    <div class="metrics-section-title" style="margin-top:4px;">Resource Utilization</div>
+    <div class="resource-row">
+      <div class="metric-card">
+        <div class="metric-value" id="metJSHeap">—</div>
+        <div class="metric-label">JS Heap (MB)</div>
+        <div class="metric-bar"><div class="metric-bar-fill" id="barHeap"></div></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" id="metClientMs">—</div>
+        <div class="metric-label">Edge Latency</div>
+        <div class="metric-bar"><div class="metric-bar-fill" id="barClient"></div></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" id="metServerMs">—</div>
+        <div class="metric-label">Cloud Latency</div>
+        <div class="metric-bar"><div class="metric-bar-fill" id="barServer"></div></div>
+      </div>
+    </div>
+
+    <!-- Pipeline Timing -->
+    <div class="metrics-section-title" style="margin-top:4px;">Pipeline Timing (last cycle)</div>
+    <div class="pipeline-card">
+      <div class="pipeline-row">
+        <div class="pipeline-name">CLIP Classify</div>
+        <div class="pipeline-bar-wrap"><div class="pipeline-bar-inner" id="barClip"></div></div>
+        <div class="pipeline-ms" id="msClip">—</div>
+      </div>
+      <div class="pipeline-row">
+        <div class="pipeline-name">DOM Detect</div>
+        <div class="pipeline-bar-wrap"><div class="pipeline-bar-inner" id="barDom"></div></div>
+        <div class="pipeline-ms" id="msDom">—</div>
+      </div>
+      <div class="pipeline-row">
+        <div class="pipeline-name">OCR / Tesseract</div>
+        <div class="pipeline-bar-wrap"><div class="pipeline-bar-inner" id="barOcr"></div></div>
+        <div class="pipeline-ms" id="msOcr">—</div>
+      </div>
+      <div class="pipeline-row">
+        <div class="pipeline-name">NER (BERT)</div>
+        <div class="pipeline-bar-wrap"><div class="pipeline-bar-inner" id="barNer"></div></div>
+        <div class="pipeline-ms" id="msNer">—</div>
+      </div>
+      <div class="pipeline-row">
+        <div class="pipeline-name">Face Detect</div>
+        <div class="pipeline-bar-wrap"><div class="pipeline-bar-inner" id="barFace"></div></div>
+        <div class="pipeline-ms" id="msFace">—</div>
+      </div>
+      <div class="pipeline-row">
+        <div class="pipeline-name">Redaction</div>
+        <div class="pipeline-bar-wrap"><div class="pipeline-bar-inner" id="barRedact"></div></div>
+        <div class="pipeline-ms" id="msRedact">—</div>
+      </div>
+    </div>
+
+    <!-- E2E Summary -->
+    <div class="metrics-section-title" style="margin-top:4px;">End-to-End Summary</div>
+    <div class="perf-row">
+      <div class="metric-card dark">
+        <div class="metric-value" id="metTotalMs">—</div>
+        <div class="metric-label">Total E2E (ms)</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" id="metSteps">0</div>
+        <div class="metric-label">Steps Executed</div>
+      </div>
+    </div>
+
+    <!-- Active Layers -->
+    <div class="metrics-section-title" style="margin-top:4px;">Active Detectors (current screen)</div>
+    <div class="layer-badges">
+      <span class="layer-badge" id="layerDom">DOM</span>
+      <span class="layer-badge" id="layerOcr">OCR</span>
+      <span class="layer-badge" id="layerNer">NER</span>
+      <span class="layer-badge" id="layerFace">Face</span>
+    </div>
+    <div id="screenTypeLabel" style="font-size:10px; color:#888; font-family:monospace; margin-top:4px;"></div>
+
+  </div>
+
+  <!-- Tab: PII Detection Stats -->
+  <div class="tab-panel" id="panel-pii">
+
+    <!-- Precision / Recall -->
+    <div class="metrics-section-title">Detection Quality (session)</div>
+    <div class="precision-recall-row">
+      <div class="pr-card">
+        <div class="pr-val" id="precisionVal">—</div>
+        <div class="pr-label">Precision</div>
+      </div>
+      <div class="pr-card">
+        <div class="pr-val" id="recallVal">—</div>
+        <div class="pr-label">Recall</div>
+      </div>
+    </div>
+    <div style="font-size:9px; color:#aaa; padding: 2px 2px;">
+      Precision = detected PII that is truly sensitive / total detected.<br>
+      Recall = detected / expected fields on page (DOM baseline).
+    </div>
+
+    <!-- Session Counts -->
+    <div class="pii-stats-row">
+      <div class="pii-score-card">
+        <div class="score-val" id="totalDetected">0</div>
+        <div class="score-label">Total Detected</div>
+        <div class="score-sublabel">This session</div>
+      </div>
+      <div class="pii-score-card">
+        <div class="score-val" id="totalRedacted">0</div>
+        <div class="score-label">Items Redacted</div>
+        <div class="score-sublabel">Canvas masked</div>
+      </div>
+    </div>
+
+    <!-- Detection Type Breakdown -->
+    <div class="breakdown-card">
+      <div class="breakdown-title">Detections by Type</div>
+      <div id="breakdownList">
+        <div style="font-size:11px; color:#aaa; text-align:center; padding: 8px 0;">
+          Run the agent to see detection breakdown.
+        </div>
+      </div>
+    </div>
+
+    <!-- By Layer -->
+    <div class="breakdown-card">
+      <div class="breakdown-title">Detections by Layer</div>
+      <div class="breakdown-row">
+        <div class="breakdown-type">DOM</div>
+        <div class="breakdown-bar-wrap"><div class="breakdown-bar-fill" id="barLayerDom" style="width:0%"></div></div>
+        <div class="breakdown-count" id="cntLayerDom">0</div>
+      </div>
+      <div class="breakdown-row">
+        <div class="breakdown-type">OCR</div>
+        <div class="breakdown-bar-wrap"><div class="breakdown-bar-fill" id="barLayerOcr" style="width:0%"></div></div>
+        <div class="breakdown-count" id="cntLayerOcr">0</div>
+      </div>
+      <div class="breakdown-row">
+        <div class="breakdown-type">NER</div>
+        <div class="breakdown-bar-wrap"><div class="breakdown-bar-fill" id="barLayerNer" style="width:0%"></div></div>
+        <div class="breakdown-count" id="cntLayerNer">0</div>
+      </div>
+      <div class="breakdown-row">
+        <div class="breakdown-type">Face (MP)</div>
+        <div class="breakdown-bar-wrap"><div class="breakdown-bar-fill" id="barLayerFace" style="width:0%"></div></div>
+        <div class="breakdown-count" id="cntLayerFace">0</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Input Bar (shared across all tabs) -->
   <div class="input-bar">
-    <input type="text" id="taskInput" placeholder="Describe task..." />
-    <button id="sendBtn" onclick="handleSend()">Send</button>
+    <input type="text" id="taskInput" placeholder="Describe task to automate..." />
+    <button id="sendBtn">Run</button>
   </div>
 
   <script src="sidepanel.js"></script>

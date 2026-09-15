@@ -530,25 +530,53 @@
   }
 
   // ============================================================
-  // TOAST NOTIFICATION
+  // TOAST NOTIFICATION — Liquid Glass Monochrome UI
   // ============================================================
   function showToast(title, msg) {
     const toast = document.createElement('div');
     toast.style.cssText = `
-      position:fixed;top:24px;right:24px;z-index:2147483647;
-      background:linear-gradient(135deg,rgba(99,102,241,0.96),rgba(139,92,246,0.96));
-      color:#fff;padding:16px 20px;border-radius:14px;
-      font:600 14px/-apple-system,system-ui,sans-serif;
-      box-shadow:0 8px 32px rgba(0,0,0,0.5);
-      backdrop-filter:blur(12px);max-width:320px;
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 2147483647;
+      background: rgba(255, 255, 255, 0.94);
+      color: #111111;
+      padding: 14px 18px;
+      border-radius: 16px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      max-width: 340px;
+      min-width: 240px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateY(-8px);
+      opacity: 0;
+      pointer-events: none;
     `;
-    toast.innerHTML = `<div style="margin-bottom:4px">${title}</div><div style="font-size:12px;opacity:.85">${msg || ''}</div>`;
+    toast.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #0D0D0D; color: #FFFFFF; font-size: 11px; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">🛡️</span>
+        <span style="font-size: 13px; font-weight: 700; color: #111111; letter-spacing: -0.01em;">${title || 'Aavaran Agent'}</span>
+      </div>
+      <div style="font-size: 12px; line-height: 1.5; color: #666666; font-weight: 400; padding-left: 30px;">${msg || ''}</div>
+    `;
     document.body.appendChild(toast);
+
+    requestAnimationFrame(() => {
+      toast.style.transform = 'translateY(0)';
+      toast.style.opacity = '1';
+    });
+
     setTimeout(() => {
-      toast.style.transition = 'opacity 0.3s';
+      toast.style.transform = 'translateY(-8px)';
       toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 300);
-    }, 4000);
+      setTimeout(() => toast.remove(), 250);
+    }, 4500);
   }
 
   // ============================================================
@@ -817,20 +845,37 @@
 
           // ---- Detect PII using DOM analysis & on-device classification ----
           case MESSAGES.DETECT_PII: {
+            const t0 = performance.now();
             const domDetections = detectPIIFromDOM();
+            const tDom = Math.round(performance.now() - t0);
+
+            const tClass0 = performance.now();
             const classification = classifyScreenState(domDetections);
+            const tClass = Math.round(performance.now() - tClass0);
+
             console.log(`[Aavaran] DOM PII scan: ${domDetections.length} sensitive fields found | Screen: ${classification.description}`);
 
             // Hybrid: Merge Optical OCR detections if models are downloaded
             let opticalDetections = [];
+            let tOcr = 0;
             if (opticalDetector.isLoaded && message.screenshot) {
+              const tOcr0 = performance.now();
               opticalDetections = await opticalDetector.detect(message.screenshot, classification);
+              tOcr = Math.round(performance.now() - tOcr0);
             }
 
             const detections = [...domDetections, ...opticalDetections];
             sendResponse({
               detections,
               classification,
+              // Per-layer timings for sidepanel Performance panel
+              timings: {
+                dom: tDom,
+                screen_classifier: tClass,
+                ocr: tOcr || null,
+                ner: null,   // NER runs in separate module (AI pipeline)
+                face: null,  // Face runs in separate module
+              },
             });
             break;
           }

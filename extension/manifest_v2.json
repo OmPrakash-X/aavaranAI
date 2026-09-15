@@ -1,0 +1,64 @@
+{
+  "manifest_version": 2,
+  "name": "Aavaran — Privacy Vision Agent",
+  "version": "1.0.0",
+  "description": "On-device AI that detects and redacts PII from your screen before any data leaves the browser.",
+
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage",
+    "scripting",
+    "<all_urls>"
+  ],
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "aavaran@privacyvision.ai",
+      "strict_min_version": "109.0"
+    }
+  },
+
+  "background": {
+    "scripts": ["src/compat/firefox-shim.js", "src/background/index.js"],
+    "type": "module"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/compat/firefox-shim.js", "src/content/index.js"],
+      "css": ["styles/content-styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "browser_action": {
+    "default_popup": "src/ui/popup/popup.html",
+    "default_icon": {
+      "16": "assets/icons/icon-16.png",
+      "32": "assets/icons/icon-32.png",
+      "48": "assets/icons/icon-48.png",
+      "128": "assets/icons/icon-128.png"
+    }
+  },
+
+  "sidebar_action": {
+    "default_panel": "src/ui/sidepanel/sidepanel.html",
+    "default_title": "Aavaran Agent"
+  },
+
+  "icons": {
+    "16": "assets/icons/icon-16.png",
+    "32": "assets/icons/icon-32.png",
+    "48": "assets/icons/icon-48.png",
+    "128": "assets/icons/icon-128.png"
+  },
+
+  "web_accessible_resources": [
+    "lib/*",
+    "assets/models/*"
+  ],
+
+  "content_security_policy": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+}
