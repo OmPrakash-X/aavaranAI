@@ -5,7 +5,7 @@ The Next.js 16+ App Router web service powering the Aavaran platform.
 - **VLM Inference API**: Handles `POST /api/v1/analyze`, receiving sanitized visual context and prioritized DOM data.
 - **Provider Cascade**: Multi-model routing across Google Gemini 1.5 Flash, Mistral Pixtral 12B, and local offline Ollama LLaVA.
 - **Security Dashboard**: Real-time observability interface at `/dashboard` displaying E2E latency, PII detection distributions, and session replay audit trails.
-- **Design System**: Liquid Glass Monochrome UI system ([`DESIGN.md`](./DESIGN.md)).
+- **Design System**: Liquid Glass Monochrome UI system ([`DESIGN.md`](../docs/DESIGN.md)).
 
 ---
 

@@ -25,10 +25,7 @@ For exhaustive technical guides, explore the dedicated documentation modules:
 |---|---|
 | 🧩 **[Extension Production Guide](docs/EXTENSION.md)** | Full guide for the Chrome MV3 & Firefox MV2 client extension, 5-layer AI pipeline, WebGPU zero-shot classifier, DPI-aware redaction engine, Privacy Vault tokenizer, and live UI dashboards. |
 | 🌐 **[Web Server & Dashboard Guide](docs/WEB.md)** | Full guide for the Next.js 16+ App Router server, multi-VLM provider cascade (Gemini 1.5 Flash, Mistral Pixtral, local offline Ollama), database models, Cloudinary media pipeline, and real-time security dashboard. |
-| 📊 **[SIH Gap Analysis & Projected Scores](sih_analysis.md)** | Detailed evaluation scorecard against SIH PS 26171 criteria, breakdown of strengths, technical coverage, and performance benchmarks. |
-| 🎨 **[Liquid Glass Design System](web/DESIGN.md)** | Comprehensive UI design language, liquid glass aesthetic, monochrome tokens, and visual accessibility. |
-| 🏆 **[SIH Comprehensive Guide](AAVARAN_SIH_COMPREHENSIVE_GUIDE.md)** | Deep defense manual for judges, architectural rationale, live demo scripts, and competitive differentiation. |
-| 🔬 **[Deep Technical Explainer](aavaran_deep_explainer.md)** | Mathematical breakdown of IoU fusion algorithms, box blur kernels, and tokenized session credential vaults. |
+| 🎨 **[Liquid Glass Design System](docs/DESIGN.md)** | Comprehensive UI design language, liquid glass aesthetic, monochrome tokens, and visual accessibility. |
 
 ---
 
@@ -140,7 +137,8 @@ Autonomous AI browser agents need visual context (screen captures) to automate c
 aavaran/
 ├── docs/                        # Detailed production documentation
 │   ├── EXTENSION.md             # Extension architecture, models, build guide
-│   └── WEB.md                   # Next.js App Router, APIs, VLM providers, DB
+│   ├── WEB.md                   # Next.js App Router, APIs, VLM providers, DB
+│   └── DESIGN.md                # Liquid Glass Monochrome UI design system
 ├── extension/                   # Client-side Browser Extension
 │   ├── assets/models/           # BlazeFace TFLite & Tesseract traineddata
 │   ├── lib/                     # Tesseract WASM, Transformers.js, MediaPipe
@@ -159,9 +157,6 @@ aavaran/
 │   ├── src/lib/providers/       # Gemini, Mistral, and local Ollama adapters
 │   ├── src/lib/services/        # Analyze service, loop detection, guardrails
 │   └── src/lib/db/              # Mongoose schemas & MongoDB connection
-├── AAVARAN_SIH_COMPREHENSIVE_GUIDE.md  # SIH Pitch & Defense manual
-├── aavaran_deep_explainer.md    # Deep technical and algorithmic explainer
-└── sih_analysis.md              # Problem statement gap analysis & score projection
 ```
 
 ---
