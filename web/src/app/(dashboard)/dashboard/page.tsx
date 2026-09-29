@@ -195,7 +195,7 @@ export default function DashboardOverviewPage() {
 
       {/* ─── MIDDLE ROW: PROTECTION TIMELINE & LIVE SHIELD ───── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
+
         {/* Left: Protection Timeline (7 cols) */}
         <div className="lg:col-span-7 liquid-glass-card p-6 flex flex-col justify-between">
           <div>
@@ -217,11 +217,10 @@ export default function DashboardOverviewPage() {
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
-                      activeTab === tab
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition ${activeTab === tab
                         ? "bg-[#0D0D0D] text-white shadow-xs"
                         : "text-[#666666] hover:text-[#111111]"
-                    }`}
+                      }`}
                   >
                     {tab}
                   </button>
@@ -305,8 +304,8 @@ export default function DashboardOverviewPage() {
           <div className="my-6 flex flex-col items-center justify-center">
             <div className="relative w-36 h-36 rounded-full flex items-center justify-center p-1.5 shadow-[0_0_50px_rgba(255,255,255,0.18)]">
               {/* Orb gradient ring */}
-              <div className="w-full h-full rounded-full bg-gradient-to-b from-white/30 via-white/5 to-black/80 flex items-center justify-center border border-white/30 p-2">
-                <div className="w-full h-full rounded-full bg-gradient-to-tr from-[#1a1a1a] via-[#333333] to-[#0a0a0a] flex items-center justify-center shadow-inner border border-white/20">
+              <div className="w-full h-full rounded-full bg-linear-to-b from-white/30 via-white/5 to-black/80 flex items-center justify-center border border-white/30 p-2">
+                <div className="w-full h-full rounded-full bg-linear-to-tr from-[#1a1a1a] via-[#333333] to-[#0a0a0a] flex items-center justify-center shadow-inner border border-white/20">
                   <ShieldCheck className="w-10 h-10 text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.8)]" />
                 </div>
               </div>
@@ -346,7 +345,7 @@ export default function DashboardOverviewPage() {
 
       {/* ─── BOTTOM ROW: PRIVACY RULES & PERFORMANCE STATUS ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
+
         {/* Left: Privacy Protection Rules (6 cols) */}
         <div className="lg:col-span-6 liquid-glass-card p-6 flex flex-col justify-between">
           <div>

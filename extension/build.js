@@ -9,6 +9,7 @@ import esbuild from 'esbuild';
 import { readFileSync, writeFileSync, copyFileSync, mkdirSync, existsSync, cpSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { gunzipSync } from 'zlib';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const isWatch = process.argv.includes('--watch');
@@ -21,6 +22,20 @@ if (!existsSync(`${outDir}/ui/sidepanel`)) mkdirSync(`${outDir}/ui/sidepanel`, {
 
 // ---- Copy static files ----
 function copyStatics() {
+  // Ensure uncompressed Tesseract traineddata exists alongside .gz
+  const gzPath = resolve(__dirname, 'assets/models/tesseract/eng.traineddata.gz');
+  const rawPath = resolve(__dirname, 'assets/models/tesseract/eng.traineddata');
+  if (existsSync(gzPath) && !existsSync(rawPath)) {
+    try {
+      const gzBuf = readFileSync(gzPath);
+      const rawBuf = gunzipSync(gzBuf);
+      writeFileSync(rawPath, rawBuf);
+      console.log('[Build] ✅ Uncompressed eng.traineddata.gz -> eng.traineddata');
+    } catch (e) {
+      console.warn('[Build] Note: could not pre-unzip eng.traineddata:', e.message);
+    }
+  }
+
   const manifest = JSON.parse(readFileSync(resolve(__dirname, 'manifest.json'), 'utf-8'));
 
   // Inside dist/, paths are relative to dist/, so strip "src/"
@@ -50,8 +65,29 @@ function copyStatics() {
   try { copyFileSync(resolve(__dirname, 'src/ui/popup/popup.css'), `${outDir}/ui/popup/popup.css`); } catch(e) {}
   try { copyFileSync(resolve(__dirname, 'src/ui/sidepanel/sidepanel.css'), `${outDir}/ui/sidepanel/sidepanel.css`); } catch(e) {}
 
-  // Copy Firefox MV2 manifest
-  try { copyFileSync(resolve(__dirname, 'manifest_v2.json'), `${outDir}/manifest_v2.json`); } catch(e) {}
+  // Process & copy Firefox MV2 manifest
+  try {
+    const ffManifestRaw = readFileSync(resolve(__dirname, 'manifest_v2.json'), 'utf-8');
+    const ffManifest = JSON.parse(ffManifestRaw);
+    if (ffManifest.background?.scripts) {
+      ffManifest.background.scripts = ffManifest.background.scripts.map(f => f.replace(/^src\//, ''));
+    }
+    if (ffManifest.content_scripts) {
+      ffManifest.content_scripts = ffManifest.content_scripts.map(cs => ({
+        ...cs,
+        js: cs.js.map(f => f.replace(/^src\//, '')),
+      }));
+    }
+    if (ffManifest.browser_action?.default_popup) {
+      ffManifest.browser_action.default_popup = ffManifest.browser_action.default_popup.replace(/^src\//, '');
+    }
+    if (ffManifest.sidebar_action?.default_panel) {
+      ffManifest.sidebar_action.default_panel = ffManifest.sidebar_action.default_panel.replace(/^src\//, '');
+    }
+    writeFileSync(`${outDir}/manifest_v2.json`, JSON.stringify(ffManifest, null, 2));
+  } catch(e) {
+    console.warn('[Build] Could not process manifest_v2.json:', e.message);
+  }
 
   // Copy styles/ if present
   const stylesSrc = resolve(__dirname, 'styles');

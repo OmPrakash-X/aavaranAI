@@ -89,6 +89,67 @@
     .sp-btn-shot:hover { background: #111; color: #fff; border-color: #111; }
     .sp-btn-shot svg { width: 11px; height: 11px; }
 
+    .sp-btn-shield {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--color-surface-02);
+      border: 1px solid var(--color-border-light);
+      border-radius: 9999px;
+      padding: 4px 9px;
+      font-size: 10px; font-weight: 600;
+      color: var(--color-text-primary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .sp-btn-shield:hover { background: #E5E5E5; }
+    .sp-btn-shield.active {
+      background: #0D0D0D;
+      color: #10B981;
+      border-color: #0D0D0D;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+    }
+
+    .sp-shield-banner {
+      background: var(--color-surface-01);
+      border: 1px solid var(--color-border-light);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      transition: all 0.2s ease;
+    }
+    .sp-shield-banner.active {
+      background: #FAFAFA;
+      border-color: #111;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    /* Switch toggle mini */
+    .switch-toggle-mini {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .switch-toggle-mini input { opacity: 0; width: 0; height: 0; }
+    .switch-slider-mini {
+      position: absolute; cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #E2E2E2;
+      transition: .25s ease;
+      border-radius: 20px;
+    }
+    .switch-slider-mini:before {
+      position: absolute; content: "";
+      height: 14px; width: 14px;
+      left: 3px; bottom: 3px;
+      background-color: white;
+      transition: .25s ease;
+      border-radius: 50%;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    .switch-toggle-mini input:checked + .switch-slider-mini { background-color: #0D0D0D; }
+    .switch-toggle-mini input:checked + .switch-slider-mini:before { transform: translateX(16px); }
+
     /* ─── TABS ──────────────────────────────────────────── */
     .sp-tabs {
       display: flex;
@@ -442,6 +503,10 @@
     </div>
     <h1>Aavaran</h1>
     <div class="sp-header-right">
+      <button class="sp-btn-shield" id="spShieldBtn" title="Toggle Live Screen-Share & Recording Shield (Google Meet Safe)">
+        <span>🛡️</span>
+        <span id="spShieldBtnText">Shield Off</span>
+      </button>
       <button class="sp-btn-shot" id="captureBtn" title="Capture & Mask Screenshot">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -462,6 +527,23 @@
 
   <!-- Tab: Chat -->
   <div class="tab-panel active" id="panel-chat">
+    <!-- Live Screen-Share Shield Banner -->
+    <div class="sp-shield-banner" id="spShieldBanner">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
+        <div style="display:flex; align-items:center; gap:7px;">
+          <span style="font-size:13px;">🛡️</span>
+          <div>
+            <div style="font-size:11px; font-weight:700; color:var(--color-text-primary); letter-spacing:-0.01em;">Screen-Share Shield</div>
+            <div style="font-size:9px; color:var(--color-text-secondary);">Blurs numbers & photos for Google Meet</div>
+          </div>
+        </div>
+        <label class="switch-toggle-mini" title="Toggle Meet & Screen-Recording Privacy Mode">
+          <input type="checkbox" id="spShieldToggle">
+          <span class="switch-slider-mini"></span>
+        </label>
+      </div>
+    </div>
+
     <div class="welcome" id="welcomeMsg">
       <h2>Aavaran Privacy Agent</h2>
       <p>

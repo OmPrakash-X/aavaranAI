@@ -290,6 +290,148 @@
       margin-left: auto;
     }
 
+    /* ─── SCREEN SHIELD CARD ─────────────────────────────── */
+    .screen-shield-card {
+      background: var(--color-surface-01);
+      border: 1px solid var(--color-border-light);
+      border-radius: 14px;
+      padding: 12px 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+      transition: all 0.2s ease;
+    }
+
+    .screen-shield-card.active {
+      border-color: #111111;
+      background: #FAFAFA;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    }
+
+    .screen-shield-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .screen-shield-label-group {
+      flex: 1;
+    }
+
+    .screen-shield-title-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .shield-icon {
+      font-size: 13px;
+    }
+
+    .shield-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .shield-live-tag {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 6px;
+      border-radius: 9999px;
+      background: #F0F0F0;
+      color: #666666;
+    }
+
+    .screen-shield-card.active .shield-live-tag {
+      background: #0D0D0D;
+      color: #FFFFFF;
+    }
+
+    .screen-shield-subtitle {
+      font-size: 11px;
+      color: var(--color-text-secondary);
+      margin-top: 2px;
+    }
+
+    /* Switch toggle */
+    .switch-toggle {
+      position: relative;
+      display: inline-block;
+      width: 42px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .switch-toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .switch-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #E2E2E2;
+      transition: .25s cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: 24px;
+    }
+
+    .switch-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .25s cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    }
+
+    .switch-toggle input:checked + .switch-slider {
+      background-color: #0D0D0D;
+    }
+
+    .switch-toggle input:checked + .switch-slider:before {
+      transform: translateX(18px);
+    }
+
+    .screen-shield-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #F0F0F0;
+      font-size: 11px;
+      color: var(--color-text-secondary);
+      font-weight: 500;
+    }
+
+    .shield-status-indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #BBB;
+      flex-shrink: 0;
+    }
+
+    .screen-shield-card.active .shield-status-indicator {
+      background: #10B981;
+      box-shadow: 0 0 6px #10B981;
+      animation: pulse 1.5s infinite;
+    }
+
+    .screen-shield-card.active .screen-shield-status {
+      color: #111111;
+      font-weight: 600;
+    }
+
     /* ─── FOOTER (52px) ─────────────────────────────────── */
     .footer {
       height: 52px;
@@ -339,6 +481,28 @@
 
   <!-- Main Content -->
   <div class="content">
+    <!-- ─── SCREEN-SHARE & RECORDING SHIELD TOGGLE ─── -->
+    <div class="screen-shield-card" id="screenShieldCard">
+      <div class="screen-shield-top">
+        <div class="screen-shield-label-group">
+          <div class="screen-shield-title-row">
+            <span class="shield-icon">🛡️</span>
+            <span class="shield-title">Screen-Share Shield</span>
+            <span class="shield-live-tag" id="shieldLiveTag">Meet Safe</span>
+          </div>
+          <div class="screen-shield-subtitle">Live-blur numbers & photos for Google Meet & calls</div>
+        </div>
+        <label class="switch-toggle" title="Toggle Meet & Screen-Recording Privacy Mode">
+          <input type="checkbox" id="screenShieldToggle">
+          <span class="switch-slider"></span>
+        </label>
+      </div>
+      <div class="screen-shield-status" id="screenShieldStatus">
+        <span class="shield-status-indicator" id="shieldStatusIndicator"></span>
+        <span id="screenShieldStatusText">Inactive — Tap switch to protect screen share</span>
+      </div>
+    </div>
+
     <div class="task-card">
       <div class="task-label">
         <span>Autonomous Task</span>

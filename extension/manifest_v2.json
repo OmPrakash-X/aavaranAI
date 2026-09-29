@@ -20,8 +20,7 @@
   },
 
   "background": {
-    "scripts": ["src/compat/firefox-shim.js", "src/background/index.js"],
-    "type": "module"
+    "scripts": ["src/compat/firefox-shim.js", "src/background/index.js"]
   },
 
   "content_scripts": [

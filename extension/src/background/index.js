@@ -204,10 +204,47 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
       })();
       return true;
+
+    // ---- Live Screen-Share & Recording Shield ----
+    case 'TOGGLE_SCREEN_SHIELD': {
+      const enabled = Boolean(message.enabled);
+      chrome.storage.local.set({ screenShieldActive: enabled });
+      // Broadcast to all open tabs so every page updates its blur shield
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach((tab) => {
+          if (tab?.id && !isRestrictedUrl(tab.url)) {
+            chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_SCREEN_SHIELD', enabled }).catch(() => {});
+          }
+        });
+      });
+      // Also broadcast to popup and sidepanel
+      broadcast({ type: 'SCREEN_SHIELD_STATE_CHANGED', enabled });
+      sendResponse({ success: true, enabled });
+      return true;
+    }
+
+    case 'GET_SCREEN_SHIELD_STATUS': {
+      chrome.storage.local.get(['screenShieldActive'], (res) => {
+        sendResponse({ enabled: Boolean(res?.screenShieldActive) });
+      });
+      return true;
+    }
+
     default:
       sendResponse({ error: 'Unknown message' });
   }
   return true; // Keep channel open for async
+});
+
+// Auto-enforce Screen Shield on newly navigated tabs if active
+chrome.tabs?.onUpdated?.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab?.url && !isRestrictedUrl(tab.url)) {
+    chrome.storage.local.get(['screenShieldActive'], (res) => {
+      if (res?.screenShieldActive) {
+        chrome.tabs.sendMessage(tabId, { type: 'TOGGLE_SCREEN_SHIELD', enabled: true }).catch(() => {});
+      }
+    });
+  }
 });
 
 // ---- Side Panel ----

@@ -91,6 +91,48 @@ document.addEventListener('DOMContentLoaded', () => {
     subEl.textContent = '';
   })();
 
+  // ---- Screen-Share & Recording Shield Toggle ----
+  const shieldToggle = document.getElementById('screenShieldToggle');
+  const shieldCard = document.getElementById('screenShieldCard');
+  const shieldStatusText = document.getElementById('screenShieldStatusText');
+
+  function updateShieldUI(isActive) {
+    if (!shieldToggle) return;
+    shieldToggle.checked = isActive;
+    if (isActive) {
+      shieldCard?.classList.add('active');
+      if (shieldStatusText) shieldStatusText.textContent = 'Active — Phone numbers, cards & avatars blurred live';
+    } else {
+      shieldCard?.classList.remove('active');
+      if (shieldStatusText) shieldStatusText.textContent = 'Inactive — Tap switch to protect screen share';
+    }
+  }
+
+  // Load initial shield status from storage
+  chrome.storage.local.get(['screenShieldActive'], (res) => {
+    updateShieldUI(Boolean(res?.screenShieldActive));
+  });
+
+  shieldToggle?.addEventListener('change', async () => {
+    const isEnabled = shieldToggle.checked;
+    updateShieldUI(isEnabled);
+    chrome.storage.local.set({ screenShieldActive: isEnabled });
+
+    // Send to background to broadcast across tabs
+    chrome.runtime.sendMessage({ type: 'TOGGLE_SCREEN_SHIELD', enabled: isEnabled }).catch(() => {});
+
+    // Also send directly to active tab for instant local effect
+    try {
+      let [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      if (!activeTab) {
+        [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      }
+      if (activeTab?.id) {
+        chrome.tabs.sendMessage(activeTab.id, { type: 'TOGGLE_SCREEN_SHIELD', enabled: isEnabled }).catch(() => {});
+      }
+    } catch (_) {}
+  });
+
   // ---- Check current agent status ----
   chrome.runtime.sendMessage({ type: 'GET_STATUS' }, (response) => {
     if (chrome.runtime.lastError) {
@@ -258,6 +300,10 @@ chrome.runtime.onMessage.addListener((msg) => {
         }, 4000);
       }
     }
+  }
+
+  if (msg.type === 'SCREEN_SHIELD_STATE_CHANGED') {
+    updateShieldUI(Boolean(msg.enabled));
   }
 });
 

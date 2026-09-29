@@ -1,34 +1,87 @@
-# Dependencies
-node_modules/
+# ============================================================
+# Aavaran AI — Evaluator-Ready .gitignore
+# Prevents sensitive credentials, caches, AI agent prompts,
+# and unneeded build artifacts from leaking into Git.
+# ============================================================
 
-# Next.js
+# ── Dependencies ───────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# ── Build & Distribution Artifacts ─────────────────────────
 .next/
 out/
-
-# Build
-dist/
 build/
+dist/
+extension/dist/
 
-# Environment
+# ── Environment & Secrets ──────────────────────────────────
+# Evaluators use web/.env.example as the template
 .env
 .env.local
-.env.production
+.env.*.local
 .env.development
+.env.production
+.env.test
+!.env.example
+web/.env.local
+web/.env.*.local
+*.pem
+*.key
 
-# OS
+# ── AI Agent Tooling & Internal Scratch (Not for Evaluators)
+CLAUDE.md
+AGENTS.md
+web/CLAUDE.md
+web/AGENTS.md
+analysis_report.md
+.gemini/
+.agents/
+
+# ── Shell, Command, & Scratch Scripts ───────────────────────
+*.cmd
+*.bat
+
+# ── Uncompressed Models & Heavy Binaries ────────────────────
+# Keeps compressed .gz models; ignores uncompressed expansions
+*.traineddata
+!*.traineddata.gz
+extension/assets/models/tesseract/eng.traineddata
+
+# ── Operating System Junk ───────────────────────────────────
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 desktop.ini
 
-# IDE
+# ── IDEs, Tooling, & Caches ─────────────────────────────────
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+*.suo
+*.ntvs*
+*.njsproj
+.eslintcache
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
 
-# Debug
+# ── Logs & Telemetry Dumps ──────────────────────────────────
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# TypeScript
-*.tsbuildinfo
-next-env.d.ts
+pnpm-debug.log*
+lerna-debug.log*
+*.log

@@ -288,8 +288,53 @@ async function handleSend() {
   switchTab('chat');
 }
 
+// ─── Screen-Share & Recording Shield Handler ─────────────────
+const spShieldToggle = document.getElementById('spShieldToggle');
+const spShieldBtn = document.getElementById('spShieldBtn');
+const spShieldBtnText = document.getElementById('spShieldBtnText');
+const spShieldBanner = document.getElementById('spShieldBanner');
+
+function updateSidepanelShieldUI(isActive) {
+  if (spShieldToggle) spShieldToggle.checked = isActive;
+  if (isActive) {
+    spShieldBtn?.classList.add('active');
+    if (spShieldBtnText) spShieldBtnText.textContent = 'Shield On';
+    spShieldBanner?.classList.add('active');
+  } else {
+    spShieldBtn?.classList.remove('active');
+    if (spShieldBtnText) spShieldBtnText.textContent = 'Shield Off';
+    spShieldBanner?.classList.remove('active');
+  }
+}
+
+// Initial load
+chrome.storage.local.get(['screenShieldActive'], (res) => {
+  updateSidepanelShieldUI(Boolean(res?.screenShieldActive));
+});
+
+function toggleShield(isEnabled) {
+  updateSidepanelShieldUI(isEnabled);
+  chrome.storage.local.set({ screenShieldActive: isEnabled });
+  chrome.runtime.sendMessage({ type: 'TOGGLE_SCREEN_SHIELD', enabled: isEnabled }).catch(() => {});
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]?.id) {
+      chrome.tabs.sendMessage(tabs[0].id, { type: 'TOGGLE_SCREEN_SHIELD', enabled: isEnabled }).catch(() => {});
+    }
+  });
+}
+
+spShieldToggle?.addEventListener('change', () => toggleShield(spShieldToggle.checked));
+spShieldBtn?.addEventListener('click', () => {
+  const current = spShieldBtn.classList.contains('active');
+  toggleShield(!current);
+});
+
 // ─── Message listener ─────────────────────────────────────────
 chrome.runtime.onMessage.addListener((msg) => {
+
+  if (msg.type === 'SCREEN_SHIELD_STATE_CHANGED') {
+    updateSidepanelShieldUI(Boolean(msg.enabled));
+  }
 
   if (msg.type === 'METRICS_UPDATE') {
     stepCount++;

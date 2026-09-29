@@ -218,7 +218,7 @@ export default function LiveFeedPage() {
       {/* Top Header & Status Bar with macOS Traffic Lights */}
       <div className="liquid-glass-card p-5 relative overflow-hidden transition-all shadow-md">
         {/* Specular soft light sheen arc */}
-        <div className="absolute -top-20 -left-20 w-80 h-80 bg-gradient-to-br from-white/30 to-transparent rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute -top-20 -left-20 w-80 h-80 bg-linear-to-br from-white/30 to-transparent rounded-full blur-2xl pointer-events-none" />
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div>

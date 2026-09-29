@@ -821,6 +821,208 @@
   opticalDetector.init().catch(() => { });
 
   // ============================================================
+  // SCREEN SHIELD ENGINE — Live In-Page Blurring for Meet & Recordings
+  // Real-time DOM obfuscation of sensitive numbers, cards, passwords,
+  // emails, and user profile pictures directly on the live webpage.
+  // ============================================================
+  const ScreenShield = {
+    isActive: false,
+    observer: null,
+    scanTimeout: null,
+    shieldedCount: 0,
+
+    PATTERNS: {
+      phone: /\b(?:\+?91[-\s]?)?[6-9]\d{4}[-\s]?\d{5}\b|\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
+      aadhaar: /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g,
+      pan: /\b[A-Z]{5}\d{4}[A-Z]\b/g,
+      creditCard: /\b(?:\d{4}[\s-]?){3}\d{4}\b/g,
+      email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
+      balance: /(?:₹|Rs\.?|\$|€|£)\s?[\d,]+(?:\.\d{2})?/g,
+      accountNo: /\b(?:acc(?:ount)?|a\/c)[\s.:#]*\d{6,18}\b/gi,
+    },
+
+    enable() {
+      this.isActive = true;
+      this.scanAndProtect();
+      this.startObserver();
+      this.renderBadge();
+    },
+
+    disable() {
+      this.isActive = false;
+      this.stopObserver();
+      this.clearProtection();
+      this.removeBadge();
+    },
+
+    startObserver() {
+      if (this.observer) return;
+      this.observer = new MutationObserver(() => {
+        if (!this.isActive) return;
+        if (this.scanTimeout) clearTimeout(this.scanTimeout);
+        this.scanTimeout = setTimeout(() => this.scanAndProtect(), 250);
+      });
+      this.observer.observe(document.body || document.documentElement, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
+    },
+
+    stopObserver() {
+      if (this.observer) {
+        this.observer.disconnect();
+        this.observer = null;
+      }
+      if (this.scanTimeout) {
+        clearTimeout(this.scanTimeout);
+        this.scanTimeout = null;
+      }
+    },
+
+    scanAndProtect() {
+      if (!this.isActive) return;
+      let count = 0;
+
+      // 1. Sensitive input fields & textareas
+      const inputs = document.querySelectorAll('input, textarea');
+      inputs.forEach((el) => {
+        const type = (el.type || '').toLowerCase();
+        const name = (el.name || '').toLowerCase();
+        const id = (el.id || '').toLowerCase();
+        const autocomplete = (el.autocomplete || '').toLowerCase();
+        const placeholder = (el.placeholder || '').toLowerCase();
+
+        const isSensitive =
+          type === 'password' ||
+          type === 'tel' ||
+          autocomplete.includes('password') ||
+          autocomplete.includes('cc-') ||
+          /pass|pwd|secret|card|cvv|cvc|aadhaar|aadhar|pan|phone|mobile|balance|salary|pin|otp/i.test(
+            `${name} ${id} ${autocomplete} ${placeholder}`
+          );
+
+        if (isSensitive) {
+          if (!el.classList.contains('aavaran-shield-blur')) {
+            el.classList.add('aavaran-shield-blur');
+            el.setAttribute('data-aavaran-shielded', 'input');
+            el.title = 'Protected by Aavaran Screen Shield (Hover to peek)';
+          }
+          count++;
+        }
+      });
+
+      // 2. Profile pictures and avatars
+      const avatars = document.querySelectorAll(
+        'img[class*="avatar" i], img[class*="profile" i], img[src*="avatar" i], img[src*="profile" i], ' +
+        'img[alt*="avatar" i], img[alt*="profile" i], img[aria-label*="profile" i], [data-testid*="avatar" i], ' +
+        '.avatar-user, .user-avatar, img.user-profile-img, [role="img"][aria-label*="avatar" i], ' +
+        '[role="img"][aria-label*="profile" i], img[src*="pbs.twimg.com/profile_images" i], ' +
+        'img[src*="avatars.githubusercontent.com" i], img[src*="googleusercontent.com" i]'
+      );
+
+      avatars.forEach((img) => {
+        if (!img.classList.contains('aavaran-shield-avatar')) {
+          img.classList.add('aavaran-shield-avatar');
+          img.setAttribute('data-aavaran-shielded', 'avatar');
+          img.title = 'Profile photo blurred for screen share (Hover to peek)';
+        }
+        count++;
+      });
+
+      // 3. Rendered text with sensitive numbers (phones, aadhaar, PAN, cards, bank balances)
+      const textNodes = document.querySelectorAll(
+        'p, span, td, th, li, a, h1, h2, h3, h4, h5, h6, b, strong, em, div'
+      );
+
+      textNodes.forEach((el) => {
+        if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.id === 'aavaran-screen-shield-badge' || el.closest('#aavaran-screen-shield-badge')) {
+          return;
+        }
+
+        // Avoid blurring large page containers
+        if (el.children.length > 2 || el.textContent.length > 120) {
+          return;
+        }
+
+        const text = el.textContent || '';
+        if (text.length < 5) return;
+
+        let matched = false;
+        for (const regex of Object.values(this.PATTERNS)) {
+          regex.lastIndex = 0;
+          if (regex.test(text)) {
+            matched = true;
+            break;
+          }
+        }
+
+        if (matched) {
+          if (!el.classList.contains('aavaran-shield-blur')) {
+            el.classList.add('aavaran-shield-blur');
+            el.setAttribute('data-aavaran-shielded', 'text');
+            el.title = 'Sensitive number blurred by Aavaran (Hover to peek)';
+          }
+          count++;
+        }
+      });
+
+      this.shieldedCount = count;
+      this.updateBadgeCount(count);
+    },
+
+    clearProtection() {
+      const shielded = document.querySelectorAll('[data-aavaran-shielded]');
+      shielded.forEach((el) => {
+        el.classList.remove('aavaran-shield-blur', 'aavaran-shield-avatar');
+        el.removeAttribute('data-aavaran-shielded');
+      });
+      this.shieldedCount = 0;
+    },
+
+    renderBadge() {
+      let badge = document.getElementById('aavaran-screen-shield-badge');
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.id = 'aavaran-screen-shield-badge';
+        badge.innerHTML = `
+          <span class="shield-dot"></span>
+          <span class="shield-text">Meet & Recording Shield</span>
+          <span class="shield-count" id="aavaran-shield-count-el">${this.shieldedCount} hidden</span>
+          <button class="shield-close" title="Turn off Screen Shield" id="aavaran-shield-close-btn">✕</button>
+        `;
+        document.body.appendChild(badge);
+
+        const closeBtn = badge.querySelector('#aavaran-shield-close-btn');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.disable();
+            try {
+              chrome.storage.local.set({ screenShieldActive: false });
+              chrome.runtime.sendMessage({ type: 'TOGGLE_SCREEN_SHIELD', enabled: false }).catch(() => {});
+            } catch (_) {}
+          });
+        }
+      }
+    },
+
+    updateBadgeCount(count) {
+      const countEl = document.getElementById('aavaran-shield-count-el');
+      if (countEl) {
+        countEl.textContent = `${count} hidden`;
+      }
+    },
+
+    removeBadge() {
+      const badge = document.getElementById('aavaran-screen-shield-badge');
+      if (badge) {
+        badge.remove();
+      }
+    }
+  };
+
+  // ============================================================
   // MESSAGE HANDLER — Routes messages from background SW
   // ============================================================
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -924,6 +1126,22 @@
             break;
           }
 
+          // ---- Toggle Live Screen-Share & Recording Shield ----
+          case 'TOGGLE_SCREEN_SHIELD': {
+            if (message.enabled) {
+              ScreenShield.enable();
+            } else {
+              ScreenShield.disable();
+            }
+            sendResponse({ ok: true, active: ScreenShield.isActive, count: ScreenShield.shieldedCount });
+            break;
+          }
+
+          case 'GET_SCREEN_SHIELD_STATUS': {
+            sendResponse({ active: ScreenShield.isActive, count: ScreenShield.shieldedCount });
+            break;
+          }
+
           default:
             sendResponse({ error: `Unknown message: ${message.type}` });
         }
@@ -935,6 +1153,15 @@
 
     return true; // Keep message channel open for async
   });
+
+  // Auto-activate Screen Shield if active in local storage
+  try {
+    chrome.storage.local.get(['screenShieldActive'], (res) => {
+      if (res?.screenShieldActive) {
+        ScreenShield.enable();
+      }
+    });
+  } catch (_) {}
 
   console.log('[Aavaran] Content script loaded ✅ on', window.location.hostname);
 
